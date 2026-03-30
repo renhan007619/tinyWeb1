@@ -50,17 +50,166 @@
 
 
 
+        /* ==================== Dark / Light Theme ==================== */
         :root {
-            --bg-cover: rgba(0, 0, 0, 0.35);
-            --card-bg: rgb(0 0 0 / 25%);
-            --card-hover-bg: rgb(0 0 0 / 32%);
-            --text-main: #efefef;
-            --text-sub: rgba(239, 239, 239, 0.6);
-            --text-dim: rgba(239, 239, 239, 0.4);
-            --accent: #f0945e;
-            --accent-glow: rgba(240, 148, 94, 0.3);
+            /* Night Mode — 深色底 + 柔和暖字（小说夜间风格） */
+            --bg-cover: rgba(0, 0, 0, 0.4);
+            --card-bg: rgb(20 20 30 / 60%);
+            --card-hover-bg: rgb(30 30 45 / 65%);
+            --text-main: #c8c0b0;
+            --text-sub: rgba(200, 192, 176, 0.55);
+            --text-dim: rgba(200, 192, 176, 0.35);
+            --accent: #e8a86d;
+            --accent-glow: rgba(232, 168, 109, 0.25);
             --radius: 6px;
+            --social-bg: rgb(255 255 255 / 8%);
+            --divider-bg: rgba(255,255,255,0.06);
+            --progress-track-bg: rgb(255 255 255 / 6%);
+            --avatar-border: rgba(255, 200, 120, 0.2);
         }
+
+        html.light {
+            /* Day Mode — 暖白底 + 深棕字（小说白天风格） */
+            --bg-cover: rgba(225, 215, 195, 0.7);
+            --card-bg: rgb(240 232 218 / 60%);
+            --card-hover-bg: rgb(240 232 218 / 72%);
+            --text-main: #3b3226;
+            --text-sub: rgba(59, 50, 38, 0.6);
+            --text-dim: rgba(59, 50, 38, 0.38);
+            --accent: #b87333;
+            --accent-glow: rgba(184, 115, 51, 0.18);
+            --social-bg: rgb(0 0 0 / 5%);
+            --divider-bg: rgba(80, 60, 30, 0.1);
+            --progress-track-bg: rgb(80 60 30 / 10%);
+            --avatar-border: rgba(100, 70, 30, 0.2);
+        }
+
+        body {
+            transition: background-color 0.6s ease;
+        }
+
+        .cards {
+            transition: background 0.6s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Night: 深暖背景 + 低饱和暗图 */
+        .bg-all img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(0px) brightness(0.55) saturate(0.8) sepia(0.2);
+            transform: scale(1.05);
+            animation: bgZoom 20s ease-in-out infinite alternate;
+            transition: filter 1s ease;
+        }
+
+        /* Day: 暖白覆盖 + 柔和亮图 */
+        html.light body {
+            background: #f5eee3;
+        }
+
+        html.light .bg-all img {
+            filter: blur(1px) brightness(1.15) saturate(0.6) sepia(0.15);
+        }
+
+        html.light .bg-fallback {
+            background: linear-gradient(135deg, #f5eee3 0%, #ede4d3 30%, #f7f0e6 60%, #ebe0ce 100%);
+        }
+
+        html.light .avatar-name {
+            background: linear-gradient(135deg, #8b5e3c 0%, #b87333 45%, #a0522d 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        html.light .loader-inner:nth-child(1) { border-bottom-color: #8b7355; }
+        html.light .loader-inner:nth-child(2) { border-right-color: #8b7355; }
+        html.light .loader-inner:nth-child(3) { border-top-color: #8b7355; }
+        html.light .loader-text { color: #8b7355; }
+        html.light #loading { background: #f5eee3; }
+
+        html.light .social-card a {
+            background: var(--social-bg);
+            color: var(--text-sub);
+        }
+
+        html.light .social-card a:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        html.light .section-divider::before,
+        html.light .section-divider::after {
+            background: linear-gradient(90deg, transparent, var(--divider-bg), transparent);
+        }
+
+        html.light .progress-track {
+            background: var(--progress-track-bg);
+        }
+
+        html.light .name-deco i {
+            background: var(--accent);
+        }
+
+        html.light .footer {
+            color: var(--text-dim);
+        }
+
+        html.light .footer a {
+            color: var(--text-sub);
+        }
+
+        html.light .footer a:hover {
+            color: var(--accent);
+        }
+
+        html.light .link-card:hover {
+            box-shadow: 0 6px 20px rgba(100, 70, 30, 0.12);
+        }
+
+        html.light .message-card .fa-quote-left,
+        html.light .message-card .fa-quote-right {
+            color: var(--accent);
+        }
+
+        /* ==================== HITOKOTO CLICK TO REFRESH ==================== */
+        .hitokoto-card {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hitokoto-card .hitokoto-hint {
+            display: none;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-align: right;
+            margin-top: 0.4rem;
+            opacity: 0.7;
+        }
+
+        .hitokoto-card:hover .hitokoto-hint {
+            display: block;
+        }
+
+        @keyframes hitokotoRefresh {
+            0% { opacity: 1; transform: translateY(0); }
+            40% { opacity: 0; transform: translateY(-8px); }
+            60% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .hitokoto-card.refreshing #hitokoto_text,
+        .hitokoto-card.refreshing #hitokoto_from {
+            display: inline;
+            animation: hitokotoRefresh 0.6s ease forwards;
+        }
+
+        .hitokoto-card.refreshing .hitokoto-hint {
+            display: none;
+        }
+
+        /* 主题切换过渡动画 */
+        /* 主题切换动画在 THEME TOGGLE section 定义 */
 
         html {
             scrollbar-width: none;
@@ -149,15 +298,7 @@
             z-index: 0;
         }
 
-        .bg-all img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: blur(0px) brightness(0.8);
-            transform: scale(1.05);
-            animation: bgZoom 20s ease-in-out infinite alternate;
-            transition: filter 0.8s ease;
-        }
+        /* .bg-all img already defined in theme section above */
 
         .bg-all img.error {
             display: none;
@@ -206,6 +347,23 @@
             100% { opacity: 1; filter: blur(0); transform: translateY(0); }
         }
 
+        /* Staggered fade-in animation for cards */
+        @keyframes slideUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .col-left .cards:nth-child(1) { animation: slideUp 0.7s ease 0.4s both; }
+        .col-left .cards:nth-child(2) { animation: slideUp 0.7s ease 0.55s both; }
+        .col-left .cards:nth-child(3) { animation: slideUp 0.7s ease 0.7s both; }
+
+        .col-right .top-row .cards:nth-child(1) { animation: slideUp 0.7s ease 0.45s both; }
+        .col-right .top-row .cards:nth-child(2) { animation: slideUp 0.7s ease 0.55s both; }
+        .col-right .section-divider:nth-child(2) { animation: slideUp 0.6s ease 0.6s both; }
+        .col-right .links-grid { animation: slideUp 0.6s ease 0.65s both; }
+        .col-right .section-divider:nth-child(4) { animation: slideUp 0.6s ease 0.95s both; }
+        .col-right .progress-card { animation: slideUp 0.7s ease 1s both; }
+
         .row {
             display: flex;
             gap: 2rem;
@@ -223,6 +381,16 @@
 
         .cards:hover {
             background: var(--card-hover-bg);
+        }
+
+        html.light .cards {
+            border: 1px solid rgba(180, 160, 130, 0.25);
+            box-shadow: 0 1px 4px rgba(80, 60, 30, 0.06);
+        }
+
+        html.light .cards:hover {
+            box-shadow: 0 3px 10px rgba(80, 60, 30, 0.1);
+            border-color: rgba(180, 160, 130, 0.35);
         }
 
         /* ==================== LEFT COLUMN ==================== */
@@ -252,12 +420,12 @@
             height: 60px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.15);
-            transition: transform 0.6s ease;
+            border: 2px solid var(--avatar-border);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.6s ease;
         }
 
         .avatar-card:hover .avatar-img {
-            transform: rotate(360deg);
+            transform: scale(1.2);
         }
 
         .avatar-name {
@@ -346,6 +514,11 @@
             padding: 0.3rem 0;
         }
 
+        html.light .message-text {
+            color: var(--text-main);
+            opacity: 0.9;
+        }
+
         .message-text strong {
             color: var(--text-main);
             font-weight: 500;
@@ -367,7 +540,7 @@
             align-items: center;
             justify-content: center;
             border-radius: var(--radius);
-            background: rgb(0 0 0 / 18%);
+            background: var(--social-bg);
             color: var(--text-sub);
             font-size: 1rem;
             transition: all 0.3s ease;
@@ -487,6 +660,19 @@
             flex: 1;
         }
 
+        .hitokoto-text.typing::after {
+            content: '|';
+            animation: cursorBlink 0.7s steps(1) infinite;
+            color: var(--accent);
+            font-weight: 300;
+            margin-left: 1px;
+        }
+
+        @keyframes cursorBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
         .hitokoto-from {
             font-size: 0.75rem;
             color: var(--text-dim);
@@ -567,11 +753,12 @@
             color: var(--text-main);
             cursor: pointer;
             display: block;
+            transform-style: preserve-3d;
+            perspective: 600px;
         }
 
         .link-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         }
 
         .link-card:active {
@@ -667,6 +854,61 @@
             color: var(--accent);
         }
 
+        /* ==================== THEME TOGGLE ==================== */
+        .theme-ripple {
+            position: fixed;
+            z-index: 99;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: scale(0);
+        }
+
+        .theme-ripple.active {
+            animation: rippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes rippleExpand {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1.2rem;
+            right: 1.2rem;
+            z-index: 100;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1.5px solid var(--avatar-border);
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            animation: slideUp 0.6s ease 1.2s forwards;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.15) rotate(15deg);
+            background: var(--card-hover-bg);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.9) rotate(-10deg);
+        }
+
+        html.light .theme-toggle {
+            border-color: rgba(80, 60, 30, 0.15);
+        }
+
         /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
             .section {
@@ -749,6 +991,9 @@
         <div class="loader-text">LOADING</div>
     </div>
 
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
+
     <!-- Background -->
     <div class="bg-all">
         <div class="bg-fallback"></div>
@@ -809,7 +1054,7 @@
                     <div class="message-card cards">
                         <i class="fa-solid fa-quote-left"></i>
                         <div class="message-text">
-                            <strong>Hello World !</strong><br>
+                            <strong id="greeting_text">你好 !</strong><br>
                             一名热爱技术、正在学习编程的学生，用代码探索更多可能，在数字世界里留下足迹。
                         </div>
                         <i class="fa-solid fa-quote-right"></i>
@@ -844,6 +1089,7 @@
                             <div class="hitokoto-label"><i class="fa-solid fa-feather"></i>&ensp;一言</div>
                             <div class="hitokoto-text" id="hitokoto_text">每一个人都应该明确自己的方向和位置</div>
                             <div class="hitokoto-from">-「 <span id="hitokoto_from">無名</span> 」</div>
+                            <div class="hitokoto-hint">点击换一句</div>
                         </div>
                         <div class="time-card cards">
                             <div class="time-date" id="time_date">2000 年 1 月 1 日</div>
@@ -893,19 +1139,19 @@
                     <!-- Progress -->
                     <div class="progress-card cards">
                         <div class="progress-item">
-                            <div class="progress-label">今日已度过 <span id="p_day">0</span>%</div>
+                            <div class="progress-label">今日已度过 <span id="p_day">0</span>% · <span id="p_day_detail"></span></div>
                             <div class="progress-track"><div class="progress-fill" id="pf_day" style="width:0%"></div></div>
                         </div>
                         <div class="progress-item">
-                            <div class="progress-label">本周已度过 <span id="p_week">0</span>%</div>
+                            <div class="progress-label">本周已度过 <span id="p_week">0</span>% · <span id="p_week_detail"></span></div>
                             <div class="progress-track"><div class="progress-fill" id="pf_week" style="width:0%"></div></div>
                         </div>
                         <div class="progress-item">
-                            <div class="progress-label">本月已度过 <span id="p_month">0</span>%</div>
+                            <div class="progress-label">本月已度过 <span id="p_month">0</span>% · <span id="p_month_detail"></span></div>
                             <div class="progress-track"><div class="progress-fill" id="pf_month" style="width:0%"></div></div>
                         </div>
                         <div class="progress-item">
-                            <div class="progress-label">今年已度过 <span id="p_year">0</span>%</div>
+                            <div class="progress-label"><span id="p_year_label"></span>已度过 <span id="p_year">0</span>%</div>
                             <div class="progress-track"><div class="progress-fill" id="pf_year" style="width:0%"></div></div>
                         </div>
                     </div>
@@ -929,6 +1175,17 @@
                 document.getElementById('loading').classList.add('hide');
             }, 800);
         });
+
+        // ========== Background Parallax ==========
+        (function() {
+            var bg = document.querySelector('.bg-all');
+            document.addEventListener('mousemove', function(e) {
+                var x = (e.clientX / window.innerWidth - 0.5) * 12;
+                var y = (e.clientY / window.innerHeight - 0.5) * 12;
+                bg.style.transition = 'transform 0.3s ease-out';
+                bg.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(1.05)';
+            });
+        })();
 
         // ========== Time ==========
         function updateTime() {
@@ -970,22 +1227,72 @@
             document.getElementById('pf_week').style.width = weekPct + '%';
             document.getElementById('pf_month').style.width = monthPct + '%';
             document.getElementById('pf_year').style.width = yearPct + '%';
+
+            // 具体数值
+            var passedHours = Math.floor(hours);
+            var remainHours = 24 - passedHours;
+            document.getElementById('p_day_detail').textContent = '已过 ' + passedHours + ' 小时';
+
+            var passedWeekDays = dayOfWeek - 1;
+            document.getElementById('p_week_detail').textContent = '第 ' + dayOfWeek + ' 天 / 共 7 天';
+
+            document.getElementById('p_month_detail').textContent = '第 ' + dayOfMonth + ' 天 / 共 ' + daysInMonth + ' 天';
+
+            var dayOfYear = Math.floor((now - startOfYear) / msInDay) + 1;
+            document.getElementById('p_year_label').textContent = now.getFullYear() + ' 年';
+            document.getElementById('p_year').closest('.progress-label').innerHTML =
+                '<span>' + now.getFullYear() + ' 年</span>已度过 <span id="p_year">' + yearPct + '</span>% · 第 ' + dayOfYear + ' 天';
         }
         updateProgress();
         setInterval(updateProgress, 60000);
 
+        // ========== Greeting ==========
+        (function() {
+            var h = new Date().getHours();
+            var text = '你好 !';
+            if (h >= 5 && h < 12) text = '早上好 ! ☀️';
+            else if (h >= 12 && h < 14) text = '中午好 ! 🌤️';
+            else if (h >= 14 && h < 18) text = '下午好 ! 🌅';
+            else if (h >= 18 && h < 22) text = '晚上好 ! 🌙';
+            else text = '夜深了 ! 💤';
+            document.getElementById('greeting_text').textContent = text;
+        })();
+
         // ========== Hitokoto ==========
-        function fetchHitokoto() {
+        var typeTimer = null;
+        function typeText(el, text, speed) {
+            if (typeTimer) clearInterval(typeTimer);
+            el.textContent = '';
+            el.classList.add('typing');
+            var i = 0;
+            typeTimer = setInterval(function() {
+                if (i < text.length) {
+                    el.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typeTimer);
+                    typeTimer = null;
+                    setTimeout(function() { el.classList.remove('typing'); }, 600);
+                }
+            }, speed || 60);
+        }
+
+        function fetchHitokoto(isRefresh) {
             fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('hitokoto_text').textContent = data.hitokoto;
+                    var textEl = document.getElementById('hitokoto_text');
+                    if (isRefresh) {
+                        typeText(textEl, data.hitokoto, 50);
+                    } else {
+                        textEl.textContent = data.hitokoto;
+                    }
                     document.getElementById('hitokoto_from').textContent = data.from || '無名';
                 })
                 .catch(() => {});
         }
-        fetchHitokoto();
-        setInterval(fetchHitokoto, 30000);
+        fetchHitokoto(false);
+        setInterval(function() { fetchHitokoto(true); }, 30000);
 
         // ========== Footer Year ==========
         document.getElementById('footer_year').textContent = new Date().getFullYear();
@@ -1094,6 +1401,94 @@
             }
 
             setTimeout(loop, 2500);
+        })();
+
+        // ========== Theme Toggle ==========
+        (function() {
+            var toggle = document.getElementById('themeToggle');
+            var html = document.documentElement;
+            var saved = localStorage.getItem('theme');
+            var h = new Date().getHours();
+            // 18:00-4:59 晚间默认暗色，5:00-17:59 白天默认亮色
+            var isNight = h >= 18 || h < 5;
+
+            if (saved === 'light') {
+                html.classList.add('light');
+                toggle.textContent = '☀️';
+            } else if (saved === 'dark') {
+                html.classList.remove('light');
+                toggle.textContent = '🌙';
+            } else {
+                if (!isNight) {
+                    html.classList.add('light');
+                    toggle.textContent = '☀️';
+                }
+            }
+
+            toggle.addEventListener('click', function(e) {
+                var isLight = html.classList.toggle('light');
+                toggle.textContent = isLight ? '☀️' : '🌙';
+                localStorage.setItem('theme', isLight ? 'light' : 'dark');
+
+                // 圆形扩散特效
+                var ripple = document.createElement('div');
+                ripple.className = 'theme-ripple';
+                var size = Math.max(window.innerWidth, window.innerHeight) * 2.5;
+                var rect = toggle.getBoundingClientRect();
+                var cx = rect.left + rect.width / 2;
+                var cy = rect.top + rect.height / 2;
+                ripple.style.width = size + 'px';
+                ripple.style.height = size + 'px';
+                ripple.style.left = (cx - size / 2) + 'px';
+                ripple.style.top = (cy - size / 2) + 'px';
+                ripple.style.background = isLight
+                    ? 'radial-gradient(circle, rgba(245,238,225,0.5) 0%, rgba(245,238,225,0) 70%)'
+                    : 'radial-gradient(circle, rgba(20,20,30,0.5) 0%, rgba(20,20,30,0) 70%)';
+                document.body.appendChild(ripple);
+                ripple.classList.add('active');
+                ripple.addEventListener('animationend', function() {
+                    ripple.remove();
+                });
+            });
+        })();
+
+        // ========== Hitokoto Click to Refresh ==========
+        document.querySelector('.hitokoto-card').addEventListener('click', function() {
+            var card = this;
+            if (card.classList.contains('refreshing')) return;
+            card.classList.add('refreshing');
+            fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    typeText(document.getElementById('hitokoto_text'), data.hitokoto, 50);
+                    document.getElementById('hitokoto_from').textContent = data.from || '無名';
+                })
+                .catch(function() {})
+                .finally(function() {
+                    setTimeout(function() { card.classList.remove('refreshing'); }, 600);
+                });
+        });
+
+        // ========== Link Cards 3D Tilt ==========
+        (function() {
+            var cards = document.querySelectorAll('.link-card');
+            cards.forEach(function(card) {
+                card.addEventListener('mousemove', function(e) {
+                    var rect = card.getBoundingClientRect();
+                    var x = e.clientX - rect.left;
+                    var y = e.clientY - rect.top;
+                    var cx = rect.width / 2;
+                    var cy = rect.height / 2;
+                    var rotateX = (y - cy) / cy * -10;
+                    var rotateY = (x - cx) / cx * 10;
+                    card.style.transition = 'transform 0.1s ease, box-shadow 0.3s ease';
+                    card.style.transform = 'perspective(600px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateY(-3px)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    card.style.transition = 'transform 0.4s ease, box-shadow 0.3s ease';
+                    card.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateY(0)';
+                });
+            });
         })();
     </script>
 </body>
