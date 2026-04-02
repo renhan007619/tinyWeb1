@@ -978,6 +978,507 @@
                 padding: 1.2rem;
             }
         }
+
+        /* ==================== TODO MEMO (备忘录) ==================== */
+        .progress-card {
+            position: relative;
+        }
+
+        .todo-toggle {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.8rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--social-bg);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .todo-toggle:hover {
+            background: var(--accent);
+            color: #fff;
+            transform: scale(1.15);
+        }
+
+        .todo-toggle .todo-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            background: #e74c3c;
+            color: #fff;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            font-weight: 500;
+        }
+
+        .todo-badge:empty,
+        .todo-badge[data-count="0"] {
+            display: none;
+        }
+
+        /* --- 备忘录面板：从图标右侧弹出 --- */
+        .todo-panel {
+            position: absolute;
+            top: -0.5rem;
+            right: calc(100% - 1rem);
+            width: 280px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateX(12px) scale(0.96);
+            transform-origin: top right;
+            background: var(--card-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: var(--radius);
+            border: 1px solid var(--divider-bg);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            z-index: 19;
+            pointer-events: none;
+        }
+
+        .todo-panel.open {
+            max-height: 520px;
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            padding: 0.8rem;
+        }
+
+        html.light .todo-panel {
+            border-color: rgba(180, 160, 130, 0.3);
+            box-shadow: 0 8px 32px rgba(80, 60, 30, 0.12);
+        }
+
+        .todo-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .todo-panel-title {
+            font-size: 0.8rem;
+            color: var(--text-main);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .todo-history-btn {
+            border: none;
+            background: var(--social-bg);
+            color: var(--text-sub);
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .todo-history-btn:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .todo-tabs {
+            display: flex;
+            gap: 0.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .todo-tab {
+            flex: 1;
+            padding: 0.3rem 0;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--social-bg);
+            color: var(--text-sub);
+            font-size: 0.68rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .todo-tab.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .todo-tab:hover:not(.active) {
+            background: var(--card-hover-bg);
+            color: var(--text-main);
+        }
+
+        .todo-input-row {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .todo-input {
+            flex: 1;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid var(--divider-bg);
+            border-radius: var(--radius);
+            background: var(--social-bg);
+            color: var(--text-main);
+            font-size: 0.75rem;
+            outline: none;
+            transition: border-color 0.25s ease;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .todo-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .todo-input:focus {
+            border-color: var(--accent);
+        }
+
+        .todo-add-btn {
+            padding: 0.35rem 0.6rem;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .todo-add-btn:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+
+        .todo-list {
+            max-height: 240px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-dim) transparent;
+        }
+
+        .todo-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb {
+            background: var(--text-dim);
+            border-radius: 3px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.2rem;
+            border-radius: var(--radius);
+            transition: background 0.2s ease;
+            animation: todoSlideIn 0.3s ease both;
+        }
+
+        @keyframes todoSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .todo-item:hover {
+            background: var(--social-bg);
+        }
+
+        .todo-check {
+            width: 16px;
+            height: 16px;
+            min-width: 16px;
+            border-radius: 50%;
+            border: 1.5px solid var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            font-size: 0.55rem;
+            color: transparent;
+        }
+
+        .todo-check:hover {
+            border-color: var(--accent);
+        }
+
+        .todo-item.done .todo-check {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 0.75rem;
+            color: var(--text-main);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .todo-item.done .todo-text {
+            text-decoration: line-through;
+            color: var(--text-dim);
+        }
+
+        .todo-text-input {
+            flex: 1;
+            padding: 0.2rem 0.4rem;
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            background: var(--social-bg);
+            color: var(--text-main);
+            font-size: 0.75rem;
+            outline: none;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .todo-del {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+
+        .todo-item:hover .todo-del {
+            opacity: 1;
+        }
+
+        .todo-del:hover {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .todo-empty {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            padding: 0.8rem 0;
+            letter-spacing: 1px;
+        }
+
+        .todo-count {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-align: right;
+            margin-top: 0.3rem;
+        }
+
+        /* --- 历史日记面板（覆盖在备忘录面板上方） --- */
+        .todo-history {
+            position: absolute;
+            top: -0.5rem;
+            right: calc(100% - 1rem);
+            width: 300px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateX(12px) scale(0.96);
+            transform-origin: top right;
+            background: var(--card-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: var(--radius);
+            border: 1px solid var(--divider-bg);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            z-index: 21;
+            pointer-events: none;
+        }
+
+        .todo-history.open {
+            max-height: 520px;
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            padding: 0.8rem;
+        }
+
+        html.light .todo-history {
+            border-color: rgba(180, 160, 130, 0.3);
+            box-shadow: 0 8px 32px rgba(80, 60, 30, 0.12);
+        }
+
+        .todo-history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.6rem;
+        }
+
+        .todo-history-title {
+            font-size: 0.8rem;
+            color: var(--text-main);
+            font-weight: 500;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .todo-history-title i {
+            color: var(--accent);
+            font-size: 0.75rem;
+        }
+
+        .todo-history-back {
+            border: none;
+            background: var(--social-bg);
+            color: var(--text-sub);
+            font-size: 0.68rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .todo-history-back:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .todo-history-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .todo-history-nav-btn {
+            border: none;
+            background: var(--social-bg);
+            color: var(--text-sub);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: all 0.2s ease;
+        }
+
+        .todo-history-nav-btn:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .todo-history-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .todo-history-date {
+            font-size: 0.78rem;
+            color: var(--text-main);
+            font-weight: 400;
+            letter-spacing: 1px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .todo-history-section {
+            margin-bottom: 0.6rem;
+        }
+
+        .todo-history-section-title {
+            font-size: 0.68rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+            padding-bottom: 0.2rem;
+            border-bottom: 1px solid var(--divider-bg);
+        }
+
+        .todo-history-item {
+            font-size: 0.72rem;
+            color: var(--text-sub);
+            padding: 0.2rem 0;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .todo-history-item .done-mark {
+            color: var(--accent);
+            font-size: 0.65rem;
+        }
+
+        .todo-history-item .undone-mark {
+            color: var(--text-dim);
+            font-size: 0.65rem;
+        }
+
+        .todo-history-item .item-done {
+            text-decoration: line-through;
+            color: var(--text-dim);
+        }
+
+        .todo-history-summary {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-align: center;
+            padding: 0.3rem 0;
+            letter-spacing: 0.5px;
+        }
+
+        .todo-history-empty {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            padding: 1.5rem 0;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            .todo-panel, .todo-history {
+                right: -10px;
+                width: calc(100vw - 40px);
+                max-width: 320px;
+            }
+            .todo-panel.open { max-height: 400px; }
+            .todo-history.open { max-height: 400px; }
+            .todo-list { max-height: 200px; }
+        }
     </style>
 </head>
 <body>
@@ -1138,7 +1639,7 @@
                     </div>
 
                     <!-- Progress -->
-                    <div class="progress-card cards">
+                    <div class="progress-card cards" id="progressCard">
                         <div class="progress-item">
                             <div class="progress-label">今日已度过 <span id="p_day">0</span>% · <span id="p_day_detail"></span></div>
                             <div class="progress-track"><div class="progress-fill" id="pf_day" style="width:0%"></div></div>
@@ -1154,6 +1655,47 @@
                         <div class="progress-item">
                             <div class="progress-label"><span id="p_year_label"></span>已度过 <span id="p_year">0</span>%</div>
                             <div class="progress-track"><div class="progress-fill" id="pf_year" style="width:0%"></div></div>
+                        </div>
+
+                        <!-- 备忘录图标按钮 -->
+                        <button class="todo-toggle" id="todoToggle" title="备忘录">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            <span class="todo-badge" id="todoBadge"></span>
+                        </button>
+
+                        <!-- 备忘录面板（浮在时间胶囊左侧） -->
+                        <div class="todo-panel" id="todoPanel">
+                            <div class="todo-panel-header">
+                                <span class="todo-panel-title">备忘录</span>
+                                <button class="todo-history-btn" id="todoHistoryBtn" title="历史日记">
+                                    <i class="fa-solid fa-box-archive"></i> 归档箱
+                                </button>
+                            </div>
+                            <div class="todo-tabs">
+                                <button class="todo-tab active" data-tab="life">生活</button>
+                                <button class="todo-tab" data-tab="study">学习</button>
+                                <button class="todo-tab" data-tab="important">*** 重要</button>
+                            </div>
+                            <div class="todo-input-row">
+                                <input type="text" class="todo-input" id="todoInput" placeholder="输入新事项..." maxlength="100">
+                                <button class="todo-add-btn" id="todoAddBtn" title="添加"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                            <div class="todo-list" id="todoList"></div>
+                            <div class="todo-count" id="todoCount"></div>
+                        </div>
+
+                        <!-- 历史日记面板（覆盖在备忘录面板之上） -->
+                        <div class="todo-history" id="todoHistory">
+                            <div class="todo-history-header">
+                                <span class="todo-history-title"><i class="fa-solid fa-box-archive"></i> 归档箱</span>
+                                <button class="todo-history-back" id="todoHistoryBack">返回</button>
+                            </div>
+                            <div class="todo-history-nav">
+                                <button class="todo-history-nav-btn" id="histPrev" title="前一天"><i class="fa-solid fa-chevron-left"></i></button>
+                                <span class="todo-history-date" id="histDate"></span>
+                                <button class="todo-history-nav-btn" id="histNext" title="后一天"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div id="histContent"></div>
                         </div>
                     </div>
 
@@ -1490,6 +2032,357 @@
                     card.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateY(0)';
                 });
             });
+        })();
+
+        // ========== Todo Memo (备忘录) ==========
+        (function() {
+            var STORAGE_KEY = 'tinyWeb1_todos';
+            var HISTORY_KEY = 'tinyWeb1_history';
+            var ARCHIVE_DATE_KEY = 'tinyWeb1_archiveDate';
+            var currentTab = 'life'; // 'life' | 'study' | 'important'
+            var historyDate = null; // 当前查看的历史日期 YYYY-MM-DD
+
+            var toggleBtn = document.getElementById('todoToggle');
+            var panel = document.getElementById('todoPanel');
+            var input = document.getElementById('todoInput');
+            var addBtn = document.getElementById('todoAddBtn');
+            var listEl = document.getElementById('todoList');
+            var countEl = document.getElementById('todoCount');
+            var badge = document.getElementById('todoBadge');
+            var tabs = document.querySelectorAll('.todo-tab');
+            var historyBtn = document.getElementById('todoHistoryBtn');
+            var historyPanel = document.getElementById('todoHistory');
+            var historyBack = document.getElementById('todoHistoryBack');
+            var histDateEl = document.getElementById('histDate');
+            var histContent = document.getElementById('histContent');
+            var histPrev = document.getElementById('histPrev');
+            var histNext = document.getElementById('histNext');
+
+            var tabNames = { life: '生活', study: '学习', important: '*** 重要' };
+
+            // --- 数据操作 ---
+            function loadTodos() {
+                try {
+                    var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                    return data || { life: [], study: [], important: [] };
+                } catch(e) {
+                    return { life: [], study: [], important: [] };
+                }
+            }
+
+            function saveTodos(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            function getTodos() {
+                return loadTodos()[currentTab] || [];
+            }
+
+            function setTodos(arr) {
+                var data = loadTodos();
+                data[currentTab] = arr;
+                saveTodos(data);
+            }
+
+            // --- 历史归档 ---
+            function loadHistory() {
+                try {
+                    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+                } catch(e) { return {}; }
+            }
+
+            function saveHistory(hist) {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+            }
+
+            function getTodayStr() {
+                var d = new Date();
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+
+            function formatDateCN(dateStr) {
+                var parts = dateStr.split('-');
+                return parts[0] + ' 年 ' + parseInt(parts[1]) + ' 月 ' + parseInt(parts[2]) + ' 日';
+            }
+
+            function prevDay(dateStr) {
+                var d = new Date(dateStr);
+                d.setDate(d.getDate() - 1);
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+
+            function nextDay(dateStr) {
+                var d = new Date(dateStr);
+                d.setDate(d.getDate() + 1);
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+
+            // 每天 00:00 自动归档当天任务
+            function checkAndArchive() {
+                var today = getTodayStr();
+                var lastArchive = localStorage.getItem(ARCHIVE_DATE_KEY);
+                if (lastArchive !== today) {
+                    // 归档当前任务到前一天
+                    var archiveDate = lastArchive ? prevDay(lastArchive) : prevDay(today);
+                    // 如果之前没归档过，归档今天之前的数据
+                    var todos = loadTodos();
+                    var hasContent = (todos.life && todos.life.length > 0)
+                                  || (todos.study && todos.study.length > 0)
+                                  || (todos.important && todos.important.length > 0);
+                    if (hasContent) {
+                        var hist = loadHistory();
+                        // 只保存有内容的分类
+                        hist[archiveDate] = {};
+                        if (todos.life && todos.life.length > 0) hist[archiveDate].life = JSON.parse(JSON.stringify(todos.life));
+                        if (todos.study && todos.study.length > 0) hist[archiveDate].study = JSON.parse(JSON.stringify(todos.study));
+                        if (todos.important && todos.important.length > 0) hist[archiveDate].important = JSON.parse(JSON.stringify(todos.important));
+                        saveHistory(hist);
+                    }
+                    localStorage.setItem(ARCHIVE_DATE_KEY, today);
+                }
+            }
+
+            // 每分钟检查一次是否跨天
+            setInterval(checkAndArchive, 60000);
+            checkAndArchive();
+
+            // --- 渲染任务列表 ---
+            function render() {
+                var todos = getTodos();
+                listEl.innerHTML = '';
+
+                if (todos.length === 0) {
+                    listEl.innerHTML = '<div class="todo-empty">暂无事项，添加一个吧</div>';
+                } else {
+                    todos.forEach(function(todo, idx) {
+                        var item = document.createElement('div');
+                        item.className = 'todo-item' + (todo.done ? ' done' : '');
+
+                        var check = document.createElement('span');
+                        check.className = 'todo-check';
+                        check.innerHTML = '<i class="fa-solid fa-check"></i>';
+                        check.addEventListener('click', function() { toggleDone(idx); });
+
+                        var text = document.createElement('span');
+                        text.className = 'todo-text';
+                        text.textContent = todo.text;
+                        text.addEventListener('dblclick', function() { startEdit(item, idx, todo.text); });
+
+                        var del = document.createElement('button');
+                        del.className = 'todo-del';
+                        del.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        del.addEventListener('click', function() { removeTodo(idx); });
+
+                        item.appendChild(check);
+                        item.appendChild(text);
+                        item.appendChild(del);
+                        listEl.appendChild(item);
+                    });
+                }
+
+                var done = todos.filter(function(t) { return t.done; }).length;
+                var total = todos.length;
+                var pending = total - done;
+                countEl.textContent = total > 0
+                    ? '共 ' + total + ' 项 · 已完成 ' + done + ' · 未完成 ' + pending
+                    : '';
+
+                // 更新 badge
+                var allTodos = loadTodos();
+                var allPending = (allTodos.life || []).filter(function(t) { return !t.done; }).length
+                              + (allTodos.study || []).filter(function(t) { return !t.done; }).length
+                              + (allTodos.important || []).filter(function(t) { return !t.done; }).length;
+                badge.textContent = allPending > 0 ? allPending : '';
+                badge.dataset.count = allPending;
+            }
+
+            // --- 历史日记渲染 ---
+            function renderHistory() {
+                if (!historyDate) {
+                    historyDate = getTodayStr();
+                }
+                histDateEl.textContent = formatDateCN(historyDate);
+
+                var hist = loadHistory();
+                var dayData = hist[historyDate];
+                histContent.innerHTML = '';
+
+                if (!dayData) {
+                    histContent.innerHTML = '<div class="todo-history-empty">这一天没有归档记录</div>';
+                } else {
+                    var totalDone = 0;
+                    var totalAll = 0;
+                    ['life', 'study', 'important'].forEach(function(cat) {
+                        if (dayData[cat] && dayData[cat].length > 0) {
+                            var section = document.createElement('div');
+                            section.className = 'todo-history-section';
+                            var title = document.createElement('div');
+                            title.className = 'todo-history-section-title';
+                            title.textContent = tabNames[cat];
+                            section.appendChild(title);
+
+                            dayData[cat].forEach(function(item) {
+                                totalAll++;
+                                if (item.done) totalDone++;
+                                var row = document.createElement('div');
+                                row.className = 'todo-history-item';
+                                var mark = document.createElement('i');
+                                if (item.done) {
+                                    mark.className = 'done-mark fa-solid fa-circle-check';
+                                    row.appendChild(mark);
+                                } else {
+                                    mark.className = 'undone-mark fa-regular fa-circle';
+                                    row.appendChild(mark);
+                                }
+                                var txt = document.createElement('span');
+                                txt.textContent = item.text;
+                                if (item.done) txt.className = 'item-done';
+                                row.appendChild(txt);
+                                section.appendChild(row);
+                            });
+                            histContent.appendChild(section);
+                        }
+                    });
+
+                    if (totalAll > 0) {
+                        var summary = document.createElement('div');
+                        summary.className = 'todo-history-summary';
+                        summary.textContent = '完成 ' + totalDone + ' / ' + totalAll + ' 项';
+                        histContent.appendChild(summary);
+                    }
+                }
+
+                // 控制前后按钮：不能超过今天
+                var today = getTodayStr();
+                histNext.disabled = historyDate >= today;
+            }
+
+            // --- 添加 ---
+            function addTodo(text) {
+                text = text.trim();
+                if (!text) return;
+                var todos = getTodos();
+                todos.push({ text: text, done: false });
+                setTodos(todos);
+                input.value = '';
+                render();
+            }
+
+            function toggleDone(idx) {
+                var todos = getTodos();
+                todos[idx].done = !todos[idx].done;
+                setTodos(todos);
+                render();
+            }
+
+            function removeTodo(idx) {
+                var todos = getTodos();
+                todos.splice(idx, 1);
+                setTodos(todos);
+                render();
+            }
+
+            function startEdit(item, idx, oldText) {
+                var textEl = item.querySelector('.todo-text');
+                var inputEl = document.createElement('input');
+                inputEl.type = 'text';
+                inputEl.className = 'todo-text-input';
+                inputEl.value = oldText;
+                inputEl.maxLength = 100;
+                textEl.replaceWith(inputEl);
+                inputEl.focus();
+                inputEl.select();
+
+                function finishEdit() {
+                    var newText = inputEl.value.trim();
+                    if (newText && newText !== oldText) {
+                        var todos = getTodos();
+                        todos[idx].text = newText;
+                        setTodos(todos);
+                    }
+                    render();
+                }
+
+                inputEl.addEventListener('blur', finishEdit);
+                inputEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { inputEl.blur(); }
+                    if (e.key === 'Escape') { inputEl.value = oldText; inputEl.blur(); }
+                });
+            }
+
+            // --- 事件绑定 ---
+            // 展开/收起备忘录面板
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (historyPanel.classList.contains('open')) {
+                    historyPanel.classList.remove('open');
+                }
+                panel.classList.toggle('open');
+            });
+
+            // 打开历史归档
+            historyBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                historyDate = getTodayStr();
+                renderHistory();
+                panel.classList.remove('open');
+                historyPanel.classList.add('open');
+            });
+
+            // 返回备忘录
+            historyBack.addEventListener('click', function(e) {
+                e.stopPropagation();
+                historyPanel.classList.remove('open');
+                panel.classList.add('open');
+            });
+
+            // 历史日期导航
+            histPrev.addEventListener('click', function() {
+                historyDate = prevDay(historyDate);
+                renderHistory();
+            });
+
+            histNext.addEventListener('click', function() {
+                var today = getTodayStr();
+                if (historyDate < today) {
+                    historyDate = nextDay(historyDate);
+                    renderHistory();
+                }
+            });
+
+            // 添加按钮
+            addBtn.addEventListener('click', function() { addTodo(input.value); });
+
+            // 回车添加
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { addTodo(input.value); }
+            });
+
+            // 标签切换
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(function(t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    currentTab = tab.dataset.tab;
+                    var phMap = { life: '输入生活事项...', study: '输入学习事项...', important: '输入重要长期任务...' };
+                    input.placeholder = phMap[currentTab] || '输入新事项...';
+                    render();
+                });
+            });
+
+            // 点击面板外部关闭
+            document.addEventListener('click', function(e) {
+                var progressCard = document.getElementById('progressCard');
+                if (panel.classList.contains('open') && !progressCard.contains(e.target)) {
+                    panel.classList.remove('open');
+                }
+                if (historyPanel.classList.contains('open') && !progressCard.contains(e.target)) {
+                    historyPanel.classList.remove('open');
+                }
+            });
+
+            // 初始渲染
+            render();
         })();
     </script>
 </body>
