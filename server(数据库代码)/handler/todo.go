@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Package handler 提供备忘录（Todo）相关的 HTTP API handlers
 // =============================================
 // 作用：

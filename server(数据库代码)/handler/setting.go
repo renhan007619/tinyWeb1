@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Package handler 提供用户设置（Settings）相关的 HTTP API handler
 // =============================================
 // 作用：

@@ -44,6 +44,7 @@ import (
 
 	"tinyweb1/config"
 	"tinyweb1/db"
+	"tinyweb1/handler"
 	"tinyweb1/model"
 )
 
@@ -196,6 +197,22 @@ func startServer() {
 	// 用于验证服务器和数据库是否正常运行
 	mux.HandleFunc("/api/health", healthCheckHandler)
 
+	// ---- 访问统计接口（Day 2 新增）----
+	mux.HandleFunc("/api/visit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.RecordVisit(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/visit/stats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetVisitStats(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理
 	fs := http.FileServer(http.Dir(rootDir))
@@ -320,4 +337,15 @@ func corsMiddleware(next http.Handler) http.Handler {
 		// 继续处理实际请求
 		next.ServeHTTP(w, r)
 	})
+}
+
+// ============================================================
+// 辅助函数
+// ============================================================
+
+// sendMethodNotAllowed 返回 405 Method Not Allowed 响应
+func sendMethodNotAllowed(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	w.Write([]byte(`{"code":405,"message":"请求方法不允许","data":null}`))
 }

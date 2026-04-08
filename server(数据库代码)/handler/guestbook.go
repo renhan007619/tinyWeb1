@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Package handler 提供留言板（Guestbook）相关的 HTTP API handlers
 // =============================================
 // 作用：

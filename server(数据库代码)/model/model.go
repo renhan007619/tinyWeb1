@@ -92,6 +92,29 @@ func (VisitStats) TableName() string {
 }
 
 // ============================================================
+// 访问统计 API 相关模型（Day 2 新增）
+// ============================================================
+
+// VisitRecord 访问记录请求体
+// 前端 POST /api/visit 时提交的 JSON 数据
+type VisitRecord struct {
+	VisitorIP  string `json:"visitor_ip"`   // 访客 IP 地址
+	UserAgent  string `json:"user_agent"`   // 浏览器 User-Agent
+	DeviceType string `json:"device_type"`  // 设备类型：mobile/desktop/tablet
+	Browser    string `json:"browser"`      // 浏览器名称
+	OS         string `json:"os"`           // 操作系统
+	Referrer   string `json:"referrer"`     // 来源页面
+}
+
+// VisitStatsResponse 访问统计汇总响应
+// 前端 GET /api/visit/stats 的返回数据
+type VisitStatsResponse struct {
+	TotalVisits    int64   `json:"total_visits"`    // 总访问次数（所有 IP 累加）
+	UniqueVisitors int64   `json:"unique_visitors"` // 独立访客数（不同 IP 数量）
+	LastVisitAt    *string `json:"last_visit_at"`   // 最后访问时间（可为空）
+}
+
+// ============================================================
 // 备忘录相关模型
 // ============================================================
 

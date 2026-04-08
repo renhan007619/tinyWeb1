@@ -3,6 +3,7 @@
 
 ## 功能更新记录
 
+- 2026.04.08 访问统计 API：POST /api/visit 记录访问、GET /api/visit/stats 统计汇总（Upsert 逻辑、GORM CRUD）
 - 2026.04.07 数据库集成：GORM + MySQL 双库连接、自动建库/建表、健康检查 API、CORS 中间件
 - 2026.04.06 调整留言板布局到右侧
 - 2026.04.06 添加数据库支持与后端 API（留言板、备忘录 CRUD、主题设置同步）
