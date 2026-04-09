@@ -1117,6 +1117,126 @@
             color: var(--accent);
         }
 
+        /* ==================== 访问统计卡片 ==================== */
+        .visit-stats-card {
+            position: fixed;
+            bottom: 40px;          /* 在 footer 上方 */
+            right: 16px;
+            z-index: 15;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--divider-bg);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            min-width: 240px;
+            max-width: 280px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(10px);
+            animation: visitStatsFadeIn 0.5s ease forwards;
+            animation-delay: 1.2s;    /* 等页面加载动画完成后再出现 */
+        }
+
+        @keyframes visitStatsFadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .visit-stats-card:hover {
+            background: var(--card-hover-bg);
+            box-shadow: 0 6px 28px rgba(0,0,0,0.25);
+            transition: all 0.3s ease;
+        }
+
+        .visit-stats-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .visit-stats-icon {
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        .visit-stats-body {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-item > i {
+            font-size: 1rem;
+            color: var(--accent);
+            opacity: 0.7;
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .stat-divider {
+            width: 1px;
+            height: 36px;
+            background: var(--divider-bg);
+            flex-shrink: 0;
+        }
+
+        /* 计数器数字跳动动画 */
+        @keyframes statNumberPop {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.25); color: var(--accent); }
+            100% { transform: scale(1); }
+        }
+
+        .stat-value.pop {
+            animation: statNumberPop 0.35s ease;
+        }
+
+        /* ---- 手机端适配（≤600px）---- */
+        @media (max-width: 600px) {
+            .visit-stats-card {
+                bottom: 36px;
+                right: 8px;
+                left: 8px;
+                min-width: auto;
+                max-width: none;
+                padding: 11px 13px;
+            }
+
+            .stat-value { font-size: 1rem; }
+            .stat-label { font-size: 0.6rem; }
+            .stat-item > i { font-size: 0.85rem; }
+        }
+
         /* ==================== THEME TOGGLE ==================== */
         .theme-ripple {
             position: fixed;
@@ -2334,6 +2454,41 @@
         </div>
     </section>
 
+    <!-- ==================== 访问统计卡片 ====================
+         展示网站访问数据：总访问次数、独立访客数、最后访问时间
+    -->
+    <div class="visit-stats-card" id="visitStatsCard">
+        <div class="visit-stats-header">
+            <i class="fa-solid fa-chart-line visit-stats-icon"></i>
+            <span>访问统计</span>
+        </div>
+        <div class="visit-stats-body" id="visitStatsBody">
+            <div class="stat-item">
+                <i class="fa-solid fa-eye"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalVisits">--</span>
+                    <span class="stat-label">总访问次数</span>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <i class="fa-solid fa-users"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="uniqueVisitors">--</span>
+                    <span class="stat-label">独立访客</span>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <i class="fa-solid fa-clock"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="lastVisitTime">--</span>
+                    <span class="stat-label">最后访问</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== 页脚（Footer）====================
          固定在页面底部，显示版权信息和年份
     -->
@@ -3368,6 +3523,111 @@
 
             // 页面加载时获取最新留言
             loadMessages(currentPage, pageSize).then(render);
+        })();
+
+        // ==================== 13. 访问统计功能 ====================
+        // 页面加载时自动记录访问 + 获取统计数据展示
+        (function() {
+            var API_BASE = '';  // 同源部署，直接使用相对路径
+
+            // ---- 获取访客 IP（优先取 X-Forwarded-For，否则用后端获取）----
+            function getVisitorIP() {
+                // 前端无法直接获取真实 IP，由后端从请求头解析
+                // 这里返回空字符串，让后端用 r.RemoteAddr 获取
+                return '';
+            }
+
+            // ---- 简单的设备检测 ----
+            function detectDeviceType() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+                    .test(navigator.userAgent) ? 'mobile' : 'desktop';
+            }
+
+            // ---- 浏览器检测 ----
+            function detectBrowser() {
+                var ua = navigator.userAgent;
+                if (ua.includes('Chrome')) return 'Chrome';
+                if (ua.includes('Firefox')) return 'Firefox';
+                if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+                if (ua.includes('Edge')) return 'Edge';
+                return 'Other';
+            }
+
+            // ---- OS 检测 ----
+            function detectOS() {
+                var ua = navigator.userAgent;
+                if (ua.includes('Windows')) return 'Windows';
+                if (ua.includes('Mac OS')) return 'macOS';
+                if (ua.includes('Linux')) return 'Linux';
+                if (ua.includes('Android')) return 'Android';
+                if (ua.includes('iOS')) return 'iOS';
+                return 'Unknown';
+            }
+
+            // ---- 数字跳动动画 ----
+            function animateNumber(el) {
+                el.classList.remove('pop');
+                void el.offsetWidth;   // 触发 reflow 重置动画
+                el.classList.add('pop');
+            }
+
+            // ---- 渲染统计数据显示到页面 ----
+            function renderStats(data) {
+                var totalEl     = document.getElementById('totalVisits');
+                var uniqueEl    = document.getElementById('uniqueVisitors');
+                var lastVisitEl = document.getElementById('lastVisitTime');
+
+                if (data.total_visits !== undefined && data.total_visits !== null) {
+                    totalEl.textContent = data.total_visits;
+                    animateNumber(totalEl);
+                }
+                if (data.unique_visitors !== undefined && data.unique_visitors !== null) {
+                    uniqueEl.textContent = data.unique_visitors;
+                    animateNumber(uniqueEl);
+                }
+                if (data.last_visit_at) {
+                    lastVisitEl.textContent = data.last_visit_at;
+                }
+            }
+
+            // ---- 步骤1：记录一次访问（POST）----
+            fetch(API_BASE + '/api/visit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    visitor_ip: getVisitorIP(),
+                    user_agent: navigator.userAgent,
+                    device_type: detectDeviceType(),
+                    browser: detectBrowser(),
+                    os: detectOS(),
+                    referrer: document.referrer || ''
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(res) {
+                console.log('[Visit] 记录结果:', res);
+
+                // ---- 步骤2：获取统计汇总（GET）----
+                fetch(API_BASE + '/api/visit/stats')
+                    .then(function(r) { return r.json(); })
+                    .then(function(statsRes) {
+                        if (statsRes.code === 0 && statsRes.data) {
+                            renderStats(statsRes.data);
+                        }
+                    })
+                    .catch(function(err) {
+                        console.warn('[Visit] 获取统计失败:', err);
+                    });
+            })
+            .catch(function(err) {
+                console.warn('[Visit] 记录访问失败:', err);
+                // 即使记录失败也尝试获取已有统计
+                fetch(API_BASE + '/api/visit/stats')
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.code === 0 && res.data) renderStats(res.data);
+                    });
+            });
         })();
     </script>
 </body>

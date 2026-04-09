@@ -19,6 +19,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"tinyweb1/db"
@@ -26,6 +27,31 @@ import (
 
 	"gorm.io/gorm"
 )
+
+// ============================================================
+// 工具函数：从 HTTP 请求中获取客户端真实 IP
+// ============================================================
+
+// getClientIP 按优先级从请求中提取客户端 IP：
+//   1. X-Forwarded-For（经过反向代理时，取第一个）
+//   2. X-Real-IP（Nginx 等设置）
+//   3. RemoteAddr（直连地址，去掉端口号）
+func getClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		if ip := strings.TrimSpace(parts[0]); ip != "" {
+			return ip
+		}
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	addr := r.RemoteAddr
+	if lastColon := strings.LastIndex(addr, ":"); lastColon != -1 {
+		return addr[:lastColon]
+	}
+	return addr
+}
 
 // ============================================================
 // POST /api/visit - 记录一次访问
@@ -64,7 +90,11 @@ func RecordVisit(w http.ResponseWriter, r *http.Request) {
 	// 校验必填字段：visitor_ip
 	req.VisitorIP = trimString(req.VisitorIP)
 	if req.VisitorIP == "" {
-		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "缺少 visitor_ip 参数"))
+		// 前端无法获取真实 IP，由后端从 HTTP 请求头自动提取
+		req.VisitorIP = getClientIP(r)
+	}
+	if req.VisitorIP == "" {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "无法获取访客 IP 地址"))
 		return
 	}
 
