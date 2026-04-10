@@ -3591,43 +3591,58 @@
             }
 
             // ---- 步骤1：记录一次访问（POST）----
-            fetch(API_BASE + '/api/visit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    visitor_ip: getVisitorIP(),
-                    user_agent: navigator.userAgent,
-                    device_type: detectDeviceType(),
-                    browser: detectBrowser(),
-                    os: detectOS(),
-                    referrer: document.referrer || ''
-                })
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(res) {
-                console.log('[Visit] 记录结果:', res);
+            // 使用 sessionStorage 防止同一标签页内刷新重复计数
+            // sessionStorage 特性：同一标签页内刷新不消失，关闭标签页后清除
+            if (!sessionStorage.getItem('visit_recorded')) {
+                // 首次打开：标记已记录，然后发送 POST
+                sessionStorage.setItem('visit_recorded', 'true');
 
-                // ---- 步骤2：获取统计汇总（GET）----
-                fetch(API_BASE + '/api/visit/stats')
-                    .then(function(r) { return r.json(); })
-                    .then(function(statsRes) {
-                        if (statsRes.code === 0 && statsRes.data) {
-                            renderStats(statsRes.data);
-                        }
+                fetch(API_BASE + '/api/visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        visitor_ip: getVisitorIP(),
+                        user_agent: navigator.userAgent,
+                        device_type: detectDeviceType(),
+                        browser: detectBrowser(),
+                        os: detectOS(),
+                        referrer: document.referrer || ''
                     })
-                    .catch(function(err) {
-                        console.warn('[Visit] 获取统计失败:', err);
-                    });
-            })
-            .catch(function(err) {
-                console.warn('[Visit] 记录访问失败:', err);
-                // 即使记录失败也尝试获取已有统计
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(res) {
+                    console.log('[Visit] 记录结果:', res);
+
+                    // ---- 步骤2：获取统计汇总（GET）----
+                    fetch(API_BASE + '/api/visit/stats')
+                        .then(function(r) { return r.json(); })
+                        .then(function(statsRes) {
+                            if (statsRes.code === 0 && statsRes.data) {
+                                renderStats(statsRes.data);
+                            }
+                        })
+                        .catch(function(err) {
+                            console.warn('[Visit] 获取统计失败:', err);
+                        });
+                })
+                .catch(function(err) {
+                    console.warn('[Visit] 记录访问失败:', err);
+                    // 即使记录失败也尝试获取已有统计
+                    fetch(API_BASE + '/api/visit/stats')
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.code === 0 && res.data) renderStats(res.data);
+                        });
+                });
+            } else {
+                // 同一标签页内刷新：不再发送 POST，只获取统计数据
+                console.log('[Visit] 本会话已记录过，跳过计数');
                 fetch(API_BASE + '/api/visit/stats')
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
                         if (res.code === 0 && res.data) renderStats(res.data);
                     });
-            });
+            }
         })();
     </script>
 </body>
