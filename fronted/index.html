@@ -3566,9 +3566,9 @@
 
             // ---- 数字跳动动画 ----
             function animateNumber(el) {
-                el.classList.remove('pop');
+                el.classList.remove('pop');//撕掉
                 void el.offsetWidth;   // 触发 reflow 重置动画
-                el.classList.add('pop');
+                el.classList.add('pop');//添加
             }
 
             // ---- 渲染统计数据显示到页面 ----

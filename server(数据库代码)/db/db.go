@@ -216,6 +216,7 @@ func autoMigrateMainDB(db *gorm.DB) {
 	// GORM 会根据结构体定义自动创建对应的表
 	err := db.AutoMigrate(
 		&model.VisitStats{}, // 访问统计表
+		&model.User{},       // 用户表（注册登录功能新增）
 	)
 	if err != nil {
 		log.Fatalf("❌ 数据库自动迁移失败: %v", err)

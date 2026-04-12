@@ -218,6 +218,15 @@ func startServer() {
 		}
 	})
 
+	// ---- 用户认证接口（注册登录功能新增）----
+	mux.HandleFunc("/api/auth/register", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.Register(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理
 	fs := http.FileServer(http.Dir(rootDir))
@@ -231,7 +240,8 @@ func startServer() {
 	fmt.Printf("  📂 静态文件: %s\n", rootDir)
 	fmt.Printf("  🔧 运行环境: %s\n", config.GetAppEnv())
 	fmt.Println("  🔗 接口:")
-	fmt.Println("     GET /api/health  健康检查")
+	fmt.Println("     GET  /api/health         健康检查")
+	fmt.Println("     POST /api/auth/register  用户注册")
 	fmt.Println("========================================")
 
 	// 启动 HTTP 服务（带 CORS 中间件）

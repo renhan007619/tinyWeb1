@@ -34,6 +34,68 @@ import (
 )
 
 // ============================================================
+// 用户认证相关模型（注册登录功能新增）
+// ============================================================
+
+// User 用户结构体
+// 对应数据库 users 表，存储用户账号信息
+//
+// 设计思路：
+//   - Username 设为唯一索引，不允许重复
+//   - PasswordHash 存储 bcrypt 加密后的密码哈希，永远不存明文
+//   - Role 区分角色：admin（管理员）/ user（普通用户），默认 user
+//   - json:"-" 标签表示 PasswordHash 不会序列化到 JSON 返回前端（安全）
+//
+// 数据库表结构（由 GORM AutoMigrate 自动创建）：
+//   | 列名          | 类型          | 说明                    |
+//   |---------------|---------------|------------------------|
+//   | id            | bigint unsigned| 自增主键                |
+//   | created_at    | datetime(3)   | 创建时间                |
+//   | updated_at    | datetime(3)   | 更新时间                |
+//   | deleted_at    | datetime(3)   | 软删除时间              |
+//   | username      | varchar(50)   | 用户名（唯一索引）       |
+//   | password_hash | varchar(255)  | bcrypt密码哈希           |
+//   | role          | varchar(20)   | 角色：admin/user         |
+type User struct {
+	gorm.Model
+	Username     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`      // 用户名（唯一）
+	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`                        // 密码哈希（不返回前端）
+	Role         string `gorm:"type:varchar(20);default:user;not null" json:"role"`         // 角色：admin / user
+}
+
+// TableName 指定 User 对应的数据库表名
+func (User) TableName() string {
+	return "users"
+}
+
+// RegisterRequest 注册请求体
+// 前端 POST /api/auth/register 时提交的 JSON 数据
+type RegisterRequest struct {
+	Username string `json:"username" binding:"required"` // 用户名（必填，3-50字符）
+	Password string `json:"password" binding:"required"` // 密码（必填，6位以上）
+}
+
+// LoginRequest 登录请求体
+// 前端 POST /api/auth/login 时提交的 JSON 数据
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"` // 用户名
+	Password string `json:"password" binding:"required"` // 密码
+}
+
+// LoginResponse 登录成功响应数据
+type LoginResponse struct {
+	Token string   `json:"token"`  // JWT token
+	User  UserInfo `json:"user"`   // 用户信息
+}
+
+// UserInfo 用户公开信息（不含密码）
+type UserInfo struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}
+
+// ============================================================
 // 访问统计相关模型（Day 1 新增）
 // ============================================================
 
