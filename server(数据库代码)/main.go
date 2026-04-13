@@ -44,6 +44,7 @@ import (
 	"tinyweb1/config"
 	"tinyweb1/db"
 	"tinyweb1/handler"
+	"tinyweb1/middleware"
 	"tinyweb1/model"
 )
 
@@ -58,6 +59,13 @@ func main() {
 	// 步骤 2: 初始化主数据库（tinyweb1）
 	// ============================================================
 	db.Initialize()
+
+	// ---- Day2 新增：自动创建 users 表 ----
+	// GORM 的 AutoMigrate 会根据 User 结构体自动创建/更新表结构
+	if err := db.GetDB().AutoMigrate(&model.User{}); err != nil {
+		log.Fatal("❌ users 表自动迁移失败:", err)
+	}
+	fmt.Println("✅ users 表就绪")
 
 	// ============================================================
 	// 步骤 3: 初始化测试数据库（tinyweb1_test）
@@ -227,6 +235,24 @@ func startServer() {
 		}
 	})
 
+	// ---- Day2 新增：登录 + 当前用户接口 ----
+	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.Login(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+
+	// GET /api/auth/me 需要登录才能访问，使用 JWT 中间件保护
+	mux.HandleFunc("/api/auth/me", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetCurrentUser(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理
 	fs := http.FileServer(http.Dir(rootDir))
@@ -242,6 +268,8 @@ func startServer() {
 	fmt.Println("  🔗 接口:")
 	fmt.Println("     GET  /api/health         健康检查")
 	fmt.Println("     POST /api/auth/register  用户注册")
+	fmt.Println("     POST /api/auth/login     用户登录 (Day2)")
+	fmt.Println("     GET  /api/auth/me        当前用户 (Day2, 需要token)")
 	fmt.Println("========================================")
 
 	// 启动 HTTP 服务（带 CORS 中间件）

@@ -25,7 +25,7 @@
 //   DB_TEST_USER     - 测试库 MySQL 用户名（默认 root）
 //   DB_TEST_PASS     - 测试库 MySQL 密码（默认空字符串）
 //   DB_TEST_NAME     - 测试库数据库名称（默认 tinyweb1_test）
-//   SERVER_PORT      - HTTP 服务端口（默认 :8081）
+//   SERVER_PORT      - HTTP 服务端口（默认 :8080）
 //   ALLOWED_ORIGINS  - 允许的跨域来源，逗号分隔（开发环境默认 *）
 // =============================================
 
@@ -57,7 +57,7 @@ type AppConfig struct {
 	TestDB  DBConfig // 测试数据库配置（开发和测试使用的数据库）
 
 	// 服务器配置
-	ServerPort     string   // HTTP 监听端口（含冒号，如 ":8081"）
+	ServerPort     string   // HTTP 监听端口（含冒号，如 ":8080"）
 	AllowedOrigins []string // 允许的 CORS 跨域来源列表
 	StaticDir      string   // 静态文件目录（为空则使用当前工作目录）
 }
@@ -93,7 +93,7 @@ func Load() {
 		},
 
 		// 服务器配置
-		ServerPort:     ":" + getEnv("SERVER_PORT", "8081"),
+		ServerPort:     ":" + getEnv("SERVER_PORT", "8080"),
 		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "*")),
 		StaticDir:      getEnv("STATIC_DIR", ""),
 	}
@@ -177,7 +177,7 @@ func GetTestDBName() string {
 // 服务器配置
 // ============================================================
 
-// GetServerPort 返回 HTTP 服务监听端口（格式如 ":8081"）
+// GetServerPort 返回 HTTP 服务监听端口（格式如 ":8080"）
 func GetServerPort() string {
 	return appConfig.ServerPort
 }

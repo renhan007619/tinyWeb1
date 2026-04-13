@@ -24,7 +24,9 @@ import (
 	"gorm.io/gorm"
 
 	"tinyweb1/db"
+	"tinyweb1/middleware"
 	"tinyweb1/model"
+	"tinyweb1/session"
 	"tinyweb1/utils"
 )
 
@@ -119,5 +121,125 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Username: user.Username,
 		Role:     user.Role,
+	}))
+}
+
+// Login 用户登录接口
+// POST /api/auth/login
+//
+// 请求体：
+//
+//	{
+//	  "username": "zhangsan",
+//	  "password": "123456"
+//	}
+//
+// 成功响应：
+//
+//	{
+//	  "code": 0,
+//	  "message": "success",
+//	  "data": {
+//	    "token": "eyJhbGciOiJIUzI1NiIs...",
+//	    "user": {
+//	      "id": 1,
+//	      "username": "zhangsan",
+//	      "role": "user"
+//	    }
+//	  }
+//	}
+//
+// 错误响应：
+//
+//	{"code": 400, "message": "用户名或密码不能为空"}
+//	{"code": 401, "message": "用户名或密码错误"}
+func Login(w http.ResponseWriter, r *http.Request) {
+	// 1. 解析请求体
+	var req model.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "请求参数格式错误"))
+		return
+	}
+
+	// 2. 参数校验
+	req.Username = strings.TrimSpace(req.Username)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Username == "" || req.Password == "" {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "用户名或密码不能为空"))
+		return
+	}
+
+	// 3. 查询用户
+	database := db.GetDB()
+	var user model.User
+	result := database.Where("username = ?", req.Username).First(&user)
+	if result.Error != nil {
+		// 用户不存在（或数据库查询出错，但为了安全统一提示）
+		sendJSON(w, http.StatusUnauthorized, model.ErrorResponse(401, "用户名或密码错误"))
+		return
+	}
+
+	// 4. 验证密码
+	if !utils.CheckPassword(req.Password, user.PasswordHash) {
+		sendJSON(w, http.StatusUnauthorized, model.ErrorResponse(401, "用户名或密码错误"))
+		return
+	}
+
+	// 5. 生成 JWT token
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Role)
+	if err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "token生成失败"))
+		return
+	}
+
+	// 6. 返回 token 和用户信息
+	sendJSON(w, http.StatusOK, model.SuccessResponse(model.LoginResponse{
+		Token: token,
+		User: model.UserInfo{
+			ID:       user.ID,
+			Username: user.Username,
+			Role:     user.Role,
+		},
+	}))
+
+	// 7. 创建 Session（记录登录状态）
+	session.Create(user.ID, user.Username, user.Role, token)
+}
+
+// GetCurrentUser 获取当前用户信息
+// GET /api/auth/me
+//
+// 请求头：
+//
+//	Authorization: Bearer <token>
+//
+// 成功响应：
+//
+//	{
+//	  "code": 0,
+//	  "message": "success",
+//	  "data": {
+//	    "id": 1,
+//	    "username": "zhangsan",
+//	    "role": "user"
+//	  }
+//	}
+func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	// 从 context 中获取中间件注入的用户信息
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		sendJSON(w, http.StatusUnauthorized, model.ErrorResponse(401, "未登录"))
+		return
+	}
+
+	username, _ := middleware.GetUsername(r.Context())
+	role, _ := middleware.GetRole(r.Context())
+
+	// 返回当前用户信息
+	sendJSON(w, http.StatusOK, model.SuccessResponse(model.UserInfo{
+		ID:       userID,
+		Username: username,
+		Role:     role,
 	}))
 }

@@ -14,6 +14,7 @@ require golang.org/x/crypto v0.50.0
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	golang.org/x/text v0.36.0 // indirect
