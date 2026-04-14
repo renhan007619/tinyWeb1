@@ -2036,9 +2036,232 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* ==================== 右上角登录区域 ==================== */
+        .auth-area {
+            position: fixed;
+            top: 1.2rem;
+            right: 4.5rem; /* 给主题按钮留位置 */
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            animation: slideUp 0.6s ease 1.2s forwards;
+        }
+
+        .auth-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1.5px solid var(--avatar-border);
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: var(--text-main);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .auth-btn:hover {
+            background: var(--card-hover-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+
+        .auth-btn:active { transform: scale(0.95); }
+
+        .auth-btn.register-btn {
+            background: var(--accent, #6c5ce7);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .auth-btn.register-btn:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+        }
+
+        .auth-user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1.5px solid var(--avatar-border);
+        }
+
+        .auth-username {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .auth-role-badge {
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 8px;
+            background: #6c5ce7;
+            color: #fff;
+        }
+
+        .auth-logout-btn {
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,77,77,0.3);
+            background: transparent;
+            color: #ff4d4d;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-logout-btn:hover {
+            background: rgba(255,77,77,0.1);
+            border-color: #ff4d4d;
+        }
+
+        /* ==================== 登录/注册弹窗 ==================== */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10000;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal.show { display: flex; }
+
+        .auth-modal-content {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 28px 32px;
+            width: 340px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.3s ease;
+            border: 1px solid var(--avatar-border);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-modal-header h3 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .close-btn {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-sub);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,77,77,0.15);
+            color: #ff4d4d;
+        }
+
+        .auth-modal-content input {
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 1.5px solid var(--avatar-border);
+            background: var(--input-bg, rgba(255,255,255,0.05));
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .auth-modal-content input:focus {
+            border-color: #6c5ce7;
+        }
+
+        .auth-modal-content input::placeholder {
+            color: var(--text-sub);
+        }
+
+        .auth-submit-btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: #6c5ce7;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 4px;
+        }
+
+        .auth-submit-btn:hover { filter: brightness(1.1); }
+        .auth-submit-btn:active { transform: scale(0.98); }
+        .auth-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .auth-error {
+            color: #ff4d4d;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            display: none;
+            text-align: center;
+        }
+
+        .auth-error.show { display: block; }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .auth-switch span {
+            cursor: pointer;
+            color: #6c5ce7;
+            transition: color 0.2s;
+        }
+
+        .auth-switch span:hover { color: #a29bfe; text-decoration: underline; }
+
         @media (max-width: 768px) {
             .gb-messages { max-height: 180px; }
             .guestbook-card { padding: 10px; }
+            .auth-area { right: 3.8rem; top: 1rem; }
+            .auth-btn { padding: 5px 12px; font-size: 0.78rem; }
+            .auth-username { max-width: 60px; }
+            .auth-modal-content { padding: 20px 24px; width: 300px; }
         }
     </style>
 </head>
@@ -2088,6 +2311,40 @@
          id="themeToggle"：JavaScript 通过这个ID获取元素并绑定事件
     -->
     <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
+
+    <!-- ==================== 右上角用户认证区域 ====================
+         未登录时：显示 [登录] [注册] 两个按钮
+         已登录时：显示 用户名 + 角色标记 + [退出]
+         JavaScript 会根据 localStorage 中的 token 动态切换显示
+    -->
+    <div id="authArea" class="auth-area">
+        <!-- 未登录状态（默认显示） -->
+        <button id="loginBtn" class="auth-btn">登录</button>
+        <button id="registerBtn" class="auth-btn register-btn">注册</button>
+    </div>
+
+    <!-- ==================== 登录/注册弹窗 ====================
+         点击右上角按钮弹出
+         支持登录/注册切换（同一个弹窗，切换标题和提交动作）
+    -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <h3 id="authTitle">登录</h3>
+                <button id="closeAuthModal" class="close-btn">&times;</button>
+            </div>
+            <div id="authError" class="auth-error"></div>
+            <form id="authForm" autocomplete="off">
+                <input type="text" id="authUsername" placeholder="用户名（至少3个字符）" required minlength="3" />
+                <input type="password" id="authPassword" placeholder="密码（至少6位）" required minlength="6" />
+                <button type="submit" id="authSubmitBtn" class="auth-submit-btn">登录</button>
+            </form>
+            <div class="auth-switch">
+                <span id="switchToRegister">还没有账号？点击注册</span>
+                <span id="switchToLogin" style="display:none">已有账号？点击登录</span>
+            </div>
+        </div>
+    </div>
 
     <!-- ==================== 3. 背景层（Background）====================
          固定定位在整个页面背后（position: fixed, z-index: 0）
@@ -3644,6 +3901,286 @@
                     });
             }
         })();
+
+        // ============================================================
+        // 用户认证模块（Day3 前端集成）
+        // ============================================================
+        // 功能：
+        //   1. 右上角显示「登录/注册」或「用户名+退出」
+        //   2. 弹窗表单提交登录/注册
+        //   3. localStorage 存储 JWT token
+        //   4. 页面加载时检查登录状态（GET /api/auth/me）
+        //   5. fetchWithAuth() 自动携带 Authorization 请求头
+        // ============================================================
+
+        var AuthManager = {
+            // 当前用户信息（登录后保存）
+            user: null,
+            // JWT token（存在 localStorage）
+            TOKEN_KEY: 'tinyweb_token',
+            // API 基础路径（同源部署时为空字符串）
+            API_BASE: '',
+
+            // ---- 初始化：页面加载时调用 ----
+            init: function() {
+                var self = this;
+
+                // 绑定按钮事件
+                document.getElementById('loginBtn').addEventListener('click', function() {
+                    self.showModal('login');
+                });
+                document.getElementById('registerBtn').addEventListener('click', function() {
+                    self.showModal('register');
+                });
+                document.getElementById('closeAuthModal').addEventListener('click', function() {
+                    self.hideModal();
+                });
+                document.getElementById('switchToRegister').addEventListener('click', function() {
+                    self.showModal('register');
+                });
+                document.getElementById('switchToLogin').addEventListener('click', function() {
+                    self.showModal('login');
+                });
+
+                // 点击遮罩关闭弹窗
+                document.getElementById('authModal').addEventListener('click', function(e) {
+                    if (e.target.id === 'authModal') self.hideModal();
+                });
+
+                // 表单提交
+                document.getElementById('authForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    self.handleSubmit();
+                });
+
+                // 检查是否已登录
+                this.checkAuthStatus();
+            },
+
+            // ---- 获取/清除 token ----
+            getToken: function() {
+                return localStorage.getItem(this.TOKEN_KEY);
+            },
+
+            setToken: function(token) {
+                localStorage.setItem(this.TOKEN_KEY, token);
+            },
+
+            clearToken: function() {
+                localStorage.removeItem(this.TOKEN_KEY);
+                this.user = null;
+            },
+
+            // ---- 带认证的 fetch ----
+            fetchWithAuth: function(url, options) {
+                options = options || {};
+                var token = this.getToken();
+                if (token) {
+                    options.headers = options.headers || {};
+                    options.headers['Authorization'] = 'Bearer ' + token;
+                }
+                return fetch(url, options);
+            },
+
+            // ---- 检查登录状态 ----
+            checkAuthStatus: function() {
+                var self = this;
+                var token = this.getToken();
+
+                if (!token) {
+                    this.showLoggedOut();
+                    return;
+                }
+
+                // 用 token 请求 /api/auth/me 验证是否有效
+                this.fetchWithAuth(this.API_BASE + '/api/auth/me')
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.code === 0 && res.data) {
+                            // token 有效，显示已登录状态
+                            self.user = res.data;
+                            self.showLoggedIn(res.data);
+                        } else {
+                            // token 无效或过期
+                            self.clearToken();
+                            self.showLoggedOut();
+                        }
+                    })
+                    .catch(function() {
+                        // 网络错误，保持当前状态
+                        console.warn('[Auth] 检查登录状态失败');
+                    });
+            },
+
+            // ---- 显示弹窗 ----
+            showModal: function(mode) {
+                // mode: 'login' 或 'register'
+                this._mode = mode || 'login';
+                var modal = document.getElementById('authModal');
+                var title = document.getElementById('authTitle');
+                var submitBtn = document.getElementById('authSubmitBtn');
+                var switchReg = document.getElementById('switchToRegister');
+                var switchLogin = document.getElementById('switchToLogin');
+                var errorEl = document.getElementById('authError');
+
+                // 清空表单和错误
+                document.getElementById('authUsername').value = '';
+                document.getElementById('authPassword').value = '';
+                errorEl.className = 'auth-error';
+                errorEl.textContent = '';
+
+                if (this._mode === 'login') {
+                    title.textContent = '登录';
+                    submitBtn.textContent = '登录';
+                    switchReg.style.display = '';
+                    switchLogin.style.display = 'none';
+                } else {
+                    title.textContent = '注册';
+                    submitBtn.textContent = '注册';
+                    switchReg.style.display = 'none';
+                    switchLogin.style.display = '';
+                }
+
+                modal.classList.add('show');
+                // 聚焦用户名输入框
+                setTimeout(function() {
+                    document.getElementById('authUsername').focus();
+                }, 100);
+            },
+
+            hideModal: function() {
+                document.getElementById('authModal').classList.remove('show');
+            },
+
+            // ---- 处理表单提交 ----
+            handleSubmit: function() {
+                var self = this;
+                var username = document.getElementById('authUsername').value.trim();
+                var password = document.getElementById('authPassword').value.trim();
+                var errorEl = document.getElementById('authError');
+                var submitBtn = document.getElementById('authSubmitBtn');
+
+                // 前端校验
+                if (username.length < 3) {
+                    this.showError('用户名至少3个字符');
+                    return;
+                }
+                if (password.length < 6) {
+                    this.showError('密码至少6位');
+                    return;
+                }
+
+                // 禁用按钮防重复提交
+                submitBtn.disabled = true;
+                submitBtn.textContent = this._mode === 'login' ? '登录中...' : '注册中...';
+
+                var apiUrl = this._mode === 'login'
+                    ? this.API_BASE + '/api/auth/login'
+                    : this.API_BASE + '/api/auth/register';
+
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code === 0 && res.data) {
+                        if (self._mode === 'register') {
+                            // 注册成功，自动切换到登录
+                            self.showError('');
+                            self.showModal('login');
+                            document.getElementById('authUsername').value = username;
+                            document.getElementById('authPassword').value = '';
+                            document.getElementById('authPassword').focus();
+                        } else {
+                            // 登录成功，保存 token
+                            self.setToken(res.data.token);
+                            self.user = res.data.user;
+                            self.showLoggedIn(res.data.user);
+                            self.hideModal();
+                        }
+                    } else {
+                        // 失败，显示错误
+                        self.showError(res.message || '操作失败');
+                    }
+                })
+                .catch(function() {
+                    self.showError('网络错误，请稍后重试');
+                })
+                .finally(function() {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = self._mode === 'login' ? '登录' : '注册';
+                });
+            },
+
+            // ---- 显示错误信息 ----
+            showError: function(msg) {
+                var errorEl = document.getElementById('authError');
+                if (msg) {
+                    errorEl.textContent = msg;
+                    errorEl.className = 'auth-error show';
+                } else {
+                    errorEl.className = 'auth-error';
+                }
+            },
+
+            // ---- UI：已登录状态 ----
+            showLoggedIn: function(user) {
+                var area = document.getElementById('authArea');
+                var roleBadge = user.role === 'admin'
+                    ? '<span class="auth-role-badge">管理员</span>'
+                    : '';
+                area.innerHTML =
+                    '<div class="auth-user-info">' +
+                        '<span class="auth-username">' + this.escapeHtml(user.username) + '</span>' +
+                        roleBadge +
+                    '</div>' +
+                    '<button id="logoutBtn" class="auth-logout-btn">退出</button>';
+
+                // 绑定退出按钮
+                var self = this;
+                document.getElementById('logoutBtn').addEventListener('click', function() {
+                    self.logout();
+                });
+
+                console.log('[Auth] 已登录:', user.username, '(' + user.role + ')');
+            },
+
+            // ---- UI：未登录状态 ----
+            showLoggedOut: function() {
+                var area = document.getElementById('authArea');
+                var self = this;
+                area.innerHTML =
+                    '<button id="loginBtn" class="auth-btn">登录</button>' +
+                    '<button id="registerBtn" class="auth-btn register-btn">注册</button>';
+
+                // 重新绑定事件
+                document.getElementById('loginBtn').addEventListener('click', function() {
+                    self.showModal('login');
+                });
+                document.getElementById('registerBtn').addEventListener('click', function() {
+                    self.showModal('register');
+                });
+            },
+
+            // ---- 退出登录 ----
+            logout: function() {
+                this.clearToken();
+                this.showLoggedOut();
+                console.log('[Auth] 已退出登录');
+            },
+
+            // ---- 防止 XSS：转义 HTML ----
+            escapeHtml: function(str) {
+                var div = document.createElement('div');
+                div.appendChild(document.createTextNode(str));
+                return div.innerHTML;
+            }
+        };
+
+        // 页面加载后初始化认证模块
+        AuthManager.init();
     </script>
 </body>
 </html>
