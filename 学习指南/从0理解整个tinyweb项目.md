@@ -1,7 +1,7 @@
 # 从0理解整个 tinyWeb1 项目
 
 > **目标**：深度理解项目每一行代码，能给别人讲清楚，能自己改功能
-> **周期**：6周（38天）
+> **周期**：6周（41天）
 > **每日投入**：高强度日 2h / 低强度日 0.5-1h / 休息日不学项目
 > **节奏**：连续4天高强度后需1天低强度或休息
 
@@ -21,12 +21,12 @@ HTML/CSS/JS基础有 / Go和数据库零基础 / 目前全懵
 ## 强度节奏设计
 
 ```
-第1周：█████░░░░ 高高高中低    （Day1-4强 Day5休）
-第2周：░░█████░░ 低高高高中    （Day6低 Day7-10强 Day11休）
-第3周：░░░░█████ 低低低高高中   （Day12-14低 Day15-18强 Day19休）
-第4周：██████░░░ 高高高高中低    （Day20-24强 Day25休）
-第5周：░░█████░░ 低高高高中     （Day26低 Day27-30强 Day31休）
-第6周：█████░░░░ 高高高中低低    （Day32-35强 Day36-38低强度收尾）
+第1周：████░░░░░ 高高高中低      （Day1-3强 Day4低 Day5休）← Day1-2已完成！
+第2周：░░█████░░ 低高高高中      （Day6低 Day7-11强 Day12休）
+第3周：░░█████░░ 低高高高高中    （Day13低 Day14-18强 Day19休）
+第4周：█████░░░░ 高高高中高中低   （Day20-24强 Day25-26休 Day27-28中低）
+第5周：░░█████░░ 低高高高中      （Day29低 Day30-33强 Day34休）
+第6周：████░░░░░ 高高中低低低     （Day35-37强 Day38-41低强度收尾）
 
 高强度日 = 2h 项目学习 + 写代码
 低强度日 = 0.5-1h 回顾/看视频/整理笔记
@@ -39,39 +39,58 @@ HTML/CSS/JS基础有 / Go和数据库零基础 / 目前全懵
 
 ```
 tinyWeb1/
-├── fronted/index.html          ← 前端（一个文件包含所有）
-│   ├── 访问统计（visit）         ← 第3530-3646行
+├── fronted/index.html          ← 前端（一个文件包含所有，共4186行）
+│   ├── 访问统计（visit）         ← JS: 第3787-3903行（IIFE）
+│   ├── 用户认证（auth）          ← CSS: 第2040-2264行 / HTML: 第2320-2360行 / JS: 第3905-4183行（AuthManager）
 │   ├── 备忘录（todo）            ← 搜索 todo 关键字
 │   ├── 留言板（guestbook）       ← 搜索 guestbook 关键字
 │   ├── 主题切换（setting）       ← 搜索 theme 关键字
 │   └── 页面UI/动画/交互          ← HTML/CSS部分
 │
 └── server(数据库代码)/           ← 后端
-    ├── main.go                  ← 服务器入口 + 路由
+    ├── main.go                  ← 服务器入口 + 路由（含认证路由 第229-254行）
     ├── config/config.go         ← 配置管理
     ├── db/db.go                 ← 数据库连接
-    ├── model/model.go           ← 数据结构定义（5个struct）
-    └── handler/
-        ├── visit.go             ← 访问统计
-        ├── todo.go              ← 备忘录CRUD
-        ├── guestbook.go         ← 留言板
-        ├── setting.go           ← 主题设置
-        └── helpers.go           ← 公共工具函数
+    ├── model/model.go           ← 数据结构定义（含User模型 第59-96行）
+    ├── handler/
+    │   ├── visit.go             ← 访问统计
+    │   ├── auth.go              ← 用户认证（Register/Login/GetCurrentUser）
+    │   ├── todo.go              ← 备忘录CRUD
+    │   ├── guestbook.go         ← 留言板
+    │   ├── setting.go           ← 主题设置
+    │   └── helpers.go           ← 公共工具函数
+    ├── middleware/
+    │   └── auth.go              ← JWT认证中间件（拦截请求验token）
+    ├── session/
+    │   └── memory.go            ← Session管理（内存存储）
+    └── utils/
+        ├── jwt.go               ← JWT token生成与验证
+        └── hash.go              ← bcrypt密码加密
 ```
 
-**关键点：5个handler的代码模式完全一样**
+**关键点：6个handler的代码模式基本一样**（auth多了一步密码加密和token生成）
 
 ```go
-// 所有 handler 都是这个模式：
+// visit/todo/guestbook/setting 的 handler 都是这个模式：
 func XxxHandler(w http.ResponseWriter, r *http.Request) {
     json.Decode(r.Body)     // 解析请求
     database.Where()        // 查库
     database.Create/Update  // 写库
     sendJSON(w, ...)        // 返回响应
 }
+
+// auth handler 多了两步：
+func AuthHandler(w http.ResponseWriter, r *http.Request) {
+    json.Decode(r.Body)     // 解析请求
+    utils.HashPassword(...) // 密码加密（注册时）
+    utils.CheckPassword()   // 密码验证（登录时）
+    utils.GenerateToken()   // 生成JWT（登录时）
+    database.Create/Where   // 写库/查库
+    sendJSON(w, ...)        // 返回响应
+}
 ```
 
-把访问统计吃透 = 懂了70%的项目。剩下的就是举一反三。
+把访问统计吃透 = 懂了60%的项目。auth模块多了JWT和bcrypt，单独学。
 
 ---
 
@@ -79,26 +98,26 @@ func XxxHandler(w http.ResponseWriter, r *http.Request) {
 
 ## 周目标
 
-> 能完整口述 `index.html` 第 3530-3646 行的每一行在干什么，为什么这么写。
+> 能完整口述 `index.html` 第 3787-3903 行的每一行在干什么，为什么这么写。
 
 ---
 
-### Day 1（高强度）— IIFE 和函数定义
+### Day 1（高强度）— IIFE 和函数定义 ✅ 已完成
 
-**学什么：** `index.html` 第 3530-3572 行，所有函数定义部分
+**学什么：** `index.html` 第 3787-3829 行，所有函数定义部分
 
 **时间分配：**
 
 | 时间 | 任务 | 验收标准 |
 |------|------|---------|
-| 前30min | 读第 3530-3538 行 | 能说出 `(function(){` 是什么、`'use strict'` 干嘛的 |
-| 中间60min | 读第 3534-3565 行，4个检测函数 | 每个函数输入是什么、输出是什么、正则怎么匹配的 |
-| 后30min | 读第 3568-3572 行 animateNumber | DOM操作classList的add/remove是干嘛的 |
+| 前30min | 读第 3787-3795 行 | 能说出 `(function(){` 是什么、`'use strict'` 干嘛的 |
+| 中间60min | 读第 3797-3822 行，4个检测函数 | 每个函数输入是什么、输出是什么、正则怎么匹配的 |
+| 后30min | 读第 3824-3829 行 animateNumber | DOM操作classList的add/remove是干嘛的 |
 
 **今天要搞懂的5个概念：**
 
 ```javascript
-// 1. IIFE — 第3530行
+// 1. IIFE — 第3787行
 (function() {
     // ...
 })();          // ← 为什么最后要加()？
@@ -107,14 +126,14 @@ func XxxHandler(w http.ResponseWriter, r *http.Request) {
 var API_BASE = '';      // 你代码用的var，和let有什么区别？
 
 // 3. function 声明 vs 函数表达式
-function getVisitorIP() { ... }   // 第3534行，函数声明
+function getVisitorIP() { ... }   // 第3791行，函数声明
 var detectDeviceType = function() { ... } // 如果写成这样呢？
 
 // 4. navigator 对象 — 浏览器内置API
 navigator.userAgent   // 浏览器自己提供的，不是你写的
 document.referrer     // 同上
 
-// 5. 正则表达式 — 第3542行
+// 5. 正则表达式 — 第3799行
 /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
 .test(navigator.userAgent)   // .test() 返回 true/false
 ```
@@ -149,31 +168,31 @@ console.log(isPhone("13812345678"));  // true还是false？
 
 ---
 
-### Day 2（高强度）— 核心业务逻辑
+### Day 2（高强度）— 核心业务逻辑 ✅ 已完成
 
-**学什么：** `index.html` 第 3575-3646 行，renderStats + fetch + sessionStorage
+**学什么：** `index.html` 第 3830-3903 行，renderStats + fetch + sessionStorage
 
 **时间分配：**
 
 | 时间 | 任务 |
 |------|------|
-| 前30min | 读第 3575-3591 行 renderStats 函数，逐行注释 |
-| 中间60min | 读第 3593-3646 行，核心逻辑，画流程图 |
+| 前30min | 读第 3830-3845 行 renderStats 函数，逐行注释 |
+| 中间60min | 读第 3847-3903 行，核心逻辑，画流程图 |
 | 后30min | 打开浏览器 F12 → Console，手动执行代码验证 |
 
 **今天要搞懂的5个概念：**
 
 ```javascript
-// 1. DOM 操作 — 第3576行
+// 1. DOM 操作 — 第3831行
 document.getElementById('totalVisits')
 // 这返回的是什么？一个HTML元素对象
 // .textContent = 27  把这个元素的文字改成 "27"
 
-// 2. sessionStorage — 第3596行
+// 2. sessionStorage — 第3848行
 sessionStorage.getItem('visit_recorded')   // 取值，没有返回null
 sessionStorage.setItem('visit_recorded', 'true')  // 存值
 
-// 3. fetch API — 第3600行
+// 3. fetch API — 第3853行
 fetch(url, options).then(fn1).then(fn2).catch(fn3)
 //                         ↑        ↑       ↑
 //                      成功回调  再成功   出错了
@@ -182,12 +201,12 @@ fetch(url, options).then(fn1).then(fn2).catch(fn3)
 // fetch 发请求需要时间，不会卡住后面的代码
 // .then() 表示"等结果回来了再执行这个函数"
 
-// 5. JSON 序列化 — 第3603行
+// 5. JSON 序列化 — 第3856行
 JSON.stringify({a:1})   →  '{"a":1}'     对象→字符串
 JSON.parse('{"a":1}')   →  {a:1}         字符串→对象
 ```
 
-**重点理解第 3596-3645 行的 if/else 分支：**
+**重点理解第 3848-3902 行的 if/else 分支：**
 
 ```
 sessionStorage 有标记？
@@ -246,8 +265,8 @@ fetch('/api/visit', {
 
 | 请求名 | 方法 | 它是干嘛的 |
 |--------|------|-----------|
-| `visit` | POST | 记录一次访问（第3600行的fetch发的） |
-| `visit/stats` | GET | 获取统计数据（第3617行的fetch发的） |
+| `visit` | POST | 记录一次访问（第3853行的fetch发的） |
+| `visit/stats` | GET | 获取统计数据（第3870行的fetch发的） |
 | `index.html` | GET | 加载页面本身 |
 | `background3.webp` | GET | 加载背景图片 |
 
@@ -270,7 +289,7 @@ Headers 标签：
 
 Payload 标签：
 {"visitor_ip":"","user_agent":"Mozilla...","browser":"Chrome","os":"Windows"...}
-                                          ↑ 这就是你第3603行的body！
+                                          ↑ 这就是你第3856行的body！
 
 Response 标签：
 {"code":0,"message":"success","data":{"is_first_visit":true,"visit_count":1}}
@@ -290,17 +309,17 @@ Response 标签：
 
 ---
 
-### Day 4（高强度）— 前端全流程贯通
+### Day 4（低强度）— 前端全流程贯通 + 总结
 
-**学什么：** 把前3天学的串起来，形成完整认知
+**学什么：** 把前3天学的串起来，形成完整认知，然后本周收工
 
 **时间分配：**
 
 | 时间 | 任务 |
 |------|------|
-| 前40min | 从头到尾再读一遍 3530-3646 行，这次带着理解读 |
+| 前40min | 从头到尾再读一遍 3787-3903 行，这次带着理解读 |
 | 中间50min | 画一张完整的流程图（纸笔画或用工具） |
-| 后30min | 给每一行代码写中文注释 |
+| 后30min | 写博客/掘金文章初稿（Day5内容合并到今天） |
 
 **你要画的流程图（至少包含这些节点）：**
 
@@ -309,104 +328,53 @@ Response 标签：
     ↓
 浏览器加载 index.html，解析到 <script>
     ↓
-IIFE 开始执行 (第3530行)
+IIFE 开始执行 (第3787行)
     ↓
-检查 sessionStorage (第3596行)
-    ├── 没有 → 存标记 → fetch POST (第3600行)
+检查 sessionStorage (第3848行)
+    ├── 没有 → 存标记 → fetch POST (第3853行)
     │                ↓
     │           浏览器发送HTTP请求
     │                ↓
     │           服务器接收处理
     │                ↓
-    │           收到响应 → fetch GET stats (第3617行)
+    │           收到响应 → fetch GET stats (第3870行)
     │                ↓
-    │           renderStats() 显示数据 (第3621行)
+    │           renderStats() 显示数据 (第3875行)
     │
-    └── 有 → 跳过POST → fetch GET stats (第3640行)
+    └── 有 → 跳过POST → fetch GET stats (第3895行)
                       ↓
-                 renderStats() 显示数据 (第3643行)
+                 renderStats() 显示数据 (第3900行)
 ```
 
-**动手练习（必须写）：**
+**动手练习（选做）：**
 
-给第 3530-3646 行每一行加上中文注释。示例：
-
-```javascript
-// 第3530行：开始定义一个匿名函数并立即执行（IIFE模式）
-(function() {
-    // 第3531行：API基地址，同源部署时为空字符串
-    var API_BASE = '';
-    
-    // 第3533-3538行：获取访客IP的函数
-    // 前端无法直接获取真实IP，所以返回空字符串让后端从TCP连接取
-    function getVisitorIP() {
-        return '';  // 故意返回空
-    }
-    
-    // （... 每一行都这样写 ...）
-    
-// 第3646行：IIFE结束，括号表示立即调用上面的函数
-})();
-```
+给第 3787-3903 行每一行加上中文注释（如果你Day1-2已经写过博客了，可以跳过）。
 
 **Day 4 过关标准：**
 - [ ] 流程图覆盖了从页面加载到数据显示的全过程
-- [ ] 每一行代码都有注释
 - [ ] 合上文件，能凭记忆说出大致流程
+- [ ] 博客/掘金文章初稿完成（Day5内容合并）
 
 ---
 
-### Day 5（高强度）— 前端总结 + 输出
-
-**时间分配：**
-
-| 时间 | 任务 |
-|------|------|
-| 前60min | 写掘金文章初稿 |
-| 后60min | 文章里的每个技术点都要能在你的代码里定位到行号 |
-
-**文章结构（边写边回看代码验证）：**
-
-```
-标题：《我的博客一刷新访问量就+1？排查与修复》
-
-1. 问题描述
-   → 截图：F12 Network 看到 visit 请求每次刷新都发
-   
-2. 排查过程
-   → 代码第3530行 IIFE 是什么？
-   → 代码第3600行 fetch 每次都执行
-   
-3. 发现原因
-   → IIFE 页面加载就执行，刷新也执行
-   
-4. 解决方案
-   → 代码第3596行 sessionStorage 检查
-   → 首次存标记，后续跳过
-   
-5. 知识扩展
-   → IIFE 是什么（配图）
-   → sessionStorage vs localStorage（配表格）
-   
-6. 效果对比
-   → 修改前后 F12 截图对比
-```
-
-**Day 5 过关标准：**
-- [ ] 文章初稿完成（可以在掘金草稿箱保存）
-- [ ] 文章里引用的每个代码片段都能定位到你项目中的行号
-- [ ] 自己读一遍文章，觉得逻辑通顺
-
----
-
-### Day 6（低强度休息日）
+### Day 5（低强度休息日）
 
 **不做新内容。可选：**
 
 - [ ] 刷 1-2 道 LeetCode（保持手感）
 - [ ] 学操作系统（进程线程相关）
-- [ ] 回顾前5天的笔记
+- [ ] 回顾前4天的笔记
 - [ ] 整理 F12 截图
+
+---
+
+### Day 6（低强度）— 休息 / 整理
+
+**不做新内容。可选：**
+
+- [ ] 整理博客
+- [ ] 学操作系统
+- [ ] 刷 LeetCode
 
 ---
 
@@ -415,6 +383,7 @@ IIFE 开始执行 (第3530行)
 ## 周目标
 
 > 能读懂 `handler/visit.go` 的每一个函数，知道 Go 的基本语法。
+> 能读懂 `handler/auth.go` 的三个认证函数。
 
 ---
 
@@ -571,13 +540,25 @@ fmt.Println(countChars("hello"))  // 输出什么？
 
 | 行号 | 内容 | 要搞懂的 |
 |------|------|---------|
-| 65-85 | `VisitStats struct` | 每个字段含义、gorm tag、json tag |
-| 100-107 | `VisitRecord struct` | 请求体结构体，对应前端传来的 JSON |
-| 111-115 | `VisitStatsResponse struct` | 响应体结构体 |
+| 59-69 | `User struct` | 用户模型：用户名唯一索引、密码哈希json:"-"不返回前端、角色默认user |
+| 71-96 | `RegisterRequest` / `LoginRequest` / `LoginResponse` / `UserInfo` | 认证相关的请求/响应结构体 |
+| 127-154 | `VisitStats struct` | 每个字段含义、gorm tag、json tag |
+| 162-177 | `VisitRecord` / `VisitStatsResponse` | 请求体结构体、响应体结构体 |
 
 **重点搞懂 tag：**
 
 ```go
+// User struct 的关键字段（第59-64行）
+Username     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
+PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`
+//                                              ↑
+//                                   json:"-" 表示这个字段永远不出现在JSON响应中！
+//                                   因为密码哈希是敏感信息，绝对不能返回给前端
+Role         string `gorm:"type:varchar(20);default:user;not null" json:"role"`
+//                                     ↑
+//                           default:user 新注册用户默认是普通用户
+
+// VisitStats 的 tag（第127-147行）
 VisitorIP string `gorm:"type:varchar(45);uniqueIndex;not null" json:"visitor_ip"`
 //          ↑                                                  ↑
 //     gorm tag：告诉GORM数据库里这列怎么建              json tag：JSON序列化时用什么key名
@@ -615,7 +596,15 @@ type AppConfig struct {
 **动手练习（必须写）：**
 
 ```go
-// 练习1：自己定义一个 struct，加 gorm tag 和 json tag
+// 练习1：自己定义一个 User struct，加 gorm tag 和 json tag
+type User struct {
+    ID           uint   `gorm:"primarykey" json:"id"`
+    Username     string `gorm:"type:varchar(50);uniqueIndex" json:"username"`
+    PasswordHash string `gorm:"type:varchar(255)" json:"-"`        // 注意 json:"-"
+    Role         string `gorm:"type:varchar(20);default:user" json:"role"`
+}
+
+// 练习2：JSON序列化看看 json:"-" 的效果
 type Student struct {
     ID   int    `gorm:"primarykey" json:"id"`
     Name string `gorm:"type:varchar(20)" json:"name"`
@@ -625,10 +614,10 @@ type Student struct {
 // 练习2：JSON序列化看看效果
 import "encoding/json"
 
-s := Student{ID: 1, Name: "任海", Age: 19}
-data, _ := json.Marshal(s)
+u := User{ID: 1, Username: "zhangsan", PasswordHash: "$2a$10$xxx", Role: "user"}
+data, _ := json.Marshal(u)
 fmt.Println(string(data))
-// 输出什么？注意 json tag 怎么影响输出的key名
+// 输出什么？注意 PasswordHash 字段会不会出现！
 
 // 练习3：模拟 config.go 的环境变量读取
 func getEnv(key, defaultValue string) string {
@@ -642,7 +631,8 @@ fmt.Println(port)  // 输出什么？
 ```
 
 **Day 9 过关标准：**
-- [ ] VisitStats 的每个字段都能说出用途和对应的 gorm tag 含义
+- [ ] User 和 VisitStats 的每个字段都能说出用途和对应的 gorm tag 含义
+- [ ] 能解释 `json:"-"` 为什么重要（密码不能返回前端）
 - [ ] 能解释 `json:"visitor_ip"` 和 `gorm:"uniqueIndex"` 各自的作用
 - [ ] 3个练习跑通
 
@@ -667,30 +657,40 @@ main() 第50行
     ├─ 第70行 testVisitStats()
     │   └─ 启动时测试一下数据库能不能正常读写
     │
-    └─ 第75行 startServer()    ★ 重点！
-        ├─ 第189行 rootDir = config.GetStaticDir()
+    └─ 第83行 startServer()    ★ 重点！
+        ├─ 第197行 rootDir = config.GetStaticDir()
         │   └─ 决定静态文件的根目录（你的 index.html 就在这里）
         │
-        ├─ 第199行 mux := http.NewServeMux()
+        ├─ 第207行 mux := http.NewServeMux()
         │   └─ 创建路由器（空的映射表）
         │
-        ├─ 第203行 mux.HandleFunc("/api/health", ...)
+        ├─ 第211行 mux.HandleFunc("/api/health", ...)
         │   └─ 注册路由1：健康检查
         │
-        ├─ 第206行 mux.HandleFunc("/api/visit", ...)
+        ├─ 第214行 mux.HandleFunc("/api/visit", ...)
         │   ├─ POST → handler.RecordVisit(w,r)
         │   └─ 其他方法 → 405 错误
         │
-        ├─ 第213行 mux.HandleFunc("/api/visit/stats", ...)
+        ├─ 第221行 mux.HandleFunc("/api/visit/stats", ...)
         │   └─ GET → handler.GetVisitStats(w,r)
         │
-        ├─ 第223行 mux.Handle("/", fs)
+        ├─ 第230行 mux.HandleFunc("/api/auth/register", ...)  ★ Day1新增
+        │   └─ POST → handler.Register(w,r)
+        │
+        ├─ 第239行 mux.HandleFunc("/api/auth/login", ...)     ★ Day2新增
+        │   └─ POST → handler.Login(w,r)
+        │
+        ├─ 第248行 mux.HandleFunc("/api/auth/me", ...)        ★ Day2新增
+        │   └─ GET → middleware.AuthMiddleware(handler.GetCurrentUser)
+        │       ↑ 注意：这个路由套了中间件！必须带token才能访问
+        │
+        ├─ 第258行 mux.Handle("/", fs)
         │   └─ 兜底路由：其他路径返回静态文件（index.html等）
         │
-        ├─ 第238行 http.ListenAndServe(addr, corsMiddleware(mux))
+        ├─ 第276行 http.ListenAndServe(addr, corsMiddleware(mux))
         │   └─ 启动监听，程序阻塞在这里等待请求
         │
-        └─ 第308行 corsMiddleware(next Handler) Handler
+        └─ 第346行 corsMiddleware(next Handler) Handler
             └─ CORS中间件：在每个请求前后加跨域头
 ```
 
@@ -710,6 +710,12 @@ mux.HandleFunc("/api/visit", myHandler)  // 注册映射关系
 http.ListenAndServe(":8081", mux)
 // 监听 8081 端口，收到请求后交给 mux 匹配路由
 // 程序在这里阻塞，不会退出
+
+// 4. 中间件 — 请求的"安检门"
+// 普通路由：请求 → handler
+// 带中间件：请求 → 中间件(验token) → handler
+// 第248行：middleware.AuthMiddleware(handler.GetCurrentUser)
+//          ↑ 先验token，通过后才执行GetCurrentUser
 ```
 
 **动手练习（必须写）：**
@@ -937,7 +943,285 @@ sqlDB.SetConnMaxLifetime(30*time.Minute)  // 连接最多活30分钟
 
 ---
 
-### Day 13（高强度）— 前后端联调走查
+### Day 13（高强度）— 读 handler/auth.go（认证核心！）
+
+**这是新增的认证模块，比 visit.go 多了密码加密和 JWT 两个概念。**
+
+#### 函数 1：Register（第61-125行）— 用户注册
+
+```go
+func Register(w http.ResponseWriter, r *http.Request) {
+    // 步骤和 visit.go 类似，但多了密码加密
+    
+    // 1. 解析请求体（第63-67行）
+    var req model.RegisterRequest
+    json.NewDecoder(r.Body).Decode(&req)
+    
+    // 2. 参数校验（第70-84行）
+    // 用户名不能空、至少3字符、密码至少6位
+    
+    // 3. 检查用户名是否已存在（第87-99行）
+    database.Where("username = ?", req.Username).First(&existingUser)
+    if result.Error == nil {
+        // 找到了 → 409 用户名已存在
+    }
+    
+    // 4. bcrypt 加密密码（第101-106行）★ 新概念
+    hashedPassword, err := utils.HashPassword(req.Password)
+    // 数据库里存的是哈希值，不是明文！
+    // 同一个密码每次加密结果都不同（因为bcrypt自带盐值）
+    
+    // 5. 创建用户（第108-117行）
+    user := model.User{
+        Username:     req.Username,
+        PasswordHash: hashedPassword,  // 存哈希，不存明文
+        Role:         "user",           // 默认普通用户
+    }
+    database.Create(&user)
+    
+    // 6. 返回用户信息（第119-124行）
+    // 注意：返回的是 UserInfo{ID, Username, Role}
+    // PasswordHash 不会返回（json:"-" 的作用）
+}
+```
+
+#### 函数 2：Login（第156-208行）— 用户登录
+
+```go
+func Login(w http.ResponseWriter, r *http.Request) {
+    // 1-3. 解析+校验+查用户（和Register类似）
+    
+    // 4. 验证密码（第183-187行）★ 新概念
+    if !utils.CheckPassword(req.Password, user.PasswordHash) {
+        // 密码不匹配 → 401
+    }
+    // bcrypt.CompareHashAndPassword 内部会：
+    //   从 hash 中提取盐值 → 用同样的参数对输入密码哈希 → 对比
+    
+    // 5. 生成 JWT token（第189-194行）★ 新概念
+    token, err := utils.GenerateToken(user.ID, user.Username, user.Role)
+    // JWT = Header.Payload.Signature 三段式
+    // Payload 里有 user_id, username, role, exp(过期时间)
+    
+    // 6. 返回 token + 用户信息（第196-204行）
+    sendJSON(w, http.StatusOK, model.SuccessResponse(model.LoginResponse{
+        Token: token,
+        User:  model.UserInfo{...},
+    }))
+    
+    // 7. 创建 Session（第206-207行）
+    session.Create(user.ID, user.Username, user.Role, token)
+}
+```
+
+#### 函数 3：GetCurrentUser（第228-245行）— 获取当前用户
+
+```go
+func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+    // 这个函数前面套了 AuthMiddleware 中间件！
+    // 中间件已经验过 token 了，用户信息在 context 里
+    
+    // 1. 从 context 取用户信息（第230-237行）
+    userID, ok := middleware.GetUserID(r.Context())
+    username, _ := middleware.GetUsername(r.Context())
+    role, _ := middleware.GetRole(r.Context())
+    
+    // 2. 直接返回，不需要查数据库
+    sendJSON(w, http.StatusOK, model.SuccessResponse(model.UserInfo{...}))
+}
+```
+
+**和 visit.go 的对比：**
+
+| 对比项 | visit.go | auth.go |
+|--------|----------|---------|
+| 请求解析 | VisitRecord | RegisterRequest / LoginRequest |
+| 数据库操作 | INSERT 或 UPDATE | INSERT（注册）或 SELECT（登录） |
+| 特殊操作 | 无 | bcrypt加密/验密 + JWT生成 |
+| 响应格式 | 访问统计数据 | token + 用户信息 |
+| 中间件 | 无 | /api/auth/me 套了 AuthMiddleware |
+
+**动手练习（必须写）：**
+
+```go
+// 练习1：模拟 Register 的核心逻辑（用map代替数据库）
+var users = make(map[string]string)  // username → hashedPassword
+
+func register(username, password string) string {
+    if _, exists := users[username]; exists {
+        return "用户名已存在"
+    }
+    users[username] = "hashed_" + password  // 模拟bcrypt
+    return "注册成功: " + username
+}
+
+func login(username, password string) string {
+    hash, exists := users[username]
+    if !exists || hash != "hashed_"+password {  // 模拟CheckPassword
+        return "用户名或密码错误"
+    }
+    return "登录成功，token: jwt_" + username  // 模拟GenerateToken
+}
+
+fmt.Println(register("zhangsan", "123456"))
+fmt.Println(register("zhangsan", "123456"))  // 重复注册？
+fmt.Println(login("zhangsan", "123456"))
+fmt.Println(login("zhangsan", "wrong"))      // 密码错？
+
+// 练习2：读 utils/hash.go 和 utils/jwt.go，每个函数写一行注释
+```
+
+**Day 13 过关标准：**
+- [ ] Register 的 6 个步骤能口述
+- [ ] Login 的 7 个步骤能口述
+- [ ] 能说清 bcrypt 和 JWT 各自的作用
+- [ ] 能解释为什么 PasswordHash 用 json:"-"
+- [ ] 练习1跑通
+
+---
+
+### Day 14（高强度）— 读 utils/ + middleware/ + session/
+
+**认证模块的三个辅助包，每个都很短。**
+
+#### utils/hash.go（48行）— 密码加密
+
+```go
+// HashPassword（第31-34行）
+func HashPassword(password string) (string, error) {
+    bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+    // bcrypt.DefaultCost = 10，表示 2^10 = 1024 轮迭代
+    // 每次加密约 100ms，安全性和性能的平衡点
+    return string(bytes), err)
+}
+
+// CheckPassword（第44-47行）
+func CheckPassword(password, hash string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
+    // bcrypt 从 hash 中提取盐值，用同样的参数对输入密码哈希，对比结果
+}
+```
+
+#### utils/jwt.go（105行）— Token 生成与验证
+
+```go
+// JwtSecretKey（第30行）— 签名密钥，必须保密！
+var JwtSecretKey = []byte("tinyweb1-secret-key-2026")
+
+// CustomClaims（第34-39行）— 自定义载荷
+type CustomClaims struct {
+    UserID   uint   `json:"user_id"`
+    Username string `json:"username"`
+    Role     string `json:"role"`
+    jwt.RegisteredClaims  // 包含 exp(过期时间)、iat(签发时间) 等
+}
+
+// GenerateToken（第46-73行）— 生成 JWT
+func GenerateToken(userID uint, username, role string) (string, error) {
+    // 1. 设置过期时间 = 当前 + 24小时
+    // 2. 创建 CustomClaims
+    // 3. jwt.NewWithClaims(HS256算法, claims)
+    // 4. token.SignedString(密钥) → 签名并返回字符串
+}
+
+// ValidateToken（第83-104行）— 验证 JWT
+func ValidateToken(tokenString string) (*CustomClaims, error) {
+    // 1. jwt.ParseWithClaims 解析 + 验证签名
+    // 2. 检查签名算法是否为 HS256（防算法混淆攻击）
+    // 3. 检查是否过期
+    // 4. 提取 CustomClaims 返回
+}
+```
+
+#### middleware/auth.go（110行）— JWT 中间件
+
+```go
+// AuthMiddleware（第41-79行）— 请求的"安检门"
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // 1. 从请求头取 Authorization（第44行）
+        authHeader := r.Header.Get("Authorization")
+        
+        // 2. 提取 Bearer token（第51-56行）
+        // 格式："Bearer eyJhbGciOi..."
+        parts := strings.Split(authHeader, " ")
+        
+        // 3. 验证 token（第59-68行）
+        claims, err := utils.ValidateToken(tokenString)
+        // 失败 → 401 未授权
+        
+        // 4. 注入用户信息到 context（第71-74行）
+        ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
+        ctx = context.WithValue(ctx, UsernameKey, claims.Username)
+        ctx = context.WithValue(ctx, RoleKey, claims.Role)
+        
+        // 5. 调用下一个处理器（第77行）
+        next.ServeHTTP(w, r.WithContext(ctx))
+    }
+}
+
+// GetUserID / GetUsername / GetRole（第82-109行）
+// 从 context 中提取中间件注入的用户信息
+```
+
+#### session/memory.go（88行）— Session 管理
+
+```go
+// SessionInfo（第28-34行）
+type SessionInfo struct {
+    UserID    uint      // 用户ID
+    Username  string    // 用户名
+    Role      string    // 角色
+    LoginTime time.Time // 登录时间
+    Token     string    // 关联的JWT token
+}
+
+// 用 sync.Map 存储（并发安全的map）
+// Create / Get / Delete 三个方法
+// 注意：当前是内存存储，重启服务器会丢失
+```
+
+**动手练习（必须写）：**
+
+```go
+// 练习1：模拟中间件模式
+func authMiddleware(next func(string)) func(string) {
+    return func(token string) {
+        if token == "" {
+            fmt.Println("❌ 未登录，拒绝访问")
+            return
+        }
+        fmt.Println("✅ token验证通过")
+        next(token)  // 调用下一个处理器
+    }
+}
+
+func getUserInfo(token string) {
+    fmt.Println("返回用户信息, token:", token)
+}
+
+// 包装后使用
+protectedHandler := authMiddleware(getUserInfo)
+protectedHandler("")           // ❌ 未登录
+protectedHandler("jwt_token")  // ✅ 通过
+
+// 练习2：画 auth 请求的完整流程图
+// 注册：前端 → POST /api/auth/register → Register → bcrypt → INSERT → 返回
+// 登录：前端 → POST /api/auth/login → Login → bcrypt验密 → JWT → 返回token
+// 获取用户：前端 → GET /api/auth/me (带token) → AuthMiddleware → GetCurrentUser → 返回
+```
+
+**Day 14 过关标准：**
+- [ ] 能说清 bcrypt 为什么比 MD5 更适合存密码
+- [ ] 能画出 JWT 的三段结构（Header.Payload.Signature）
+- [ ] 能解释中间件的工作流程（请求 → 中间件 → handler）
+- [ ] 能解释 context.WithValue 的作用（中间件给handler传数据）
+- [ ] 练习1跑通
+
+---
+
+### Day 15（高强度）— 前后端联调走查
 
 **目标：从前端第一行代码开始，跟踪到数据库最后一行SQL。**
 
@@ -988,7 +1272,7 @@ sqlDB.SetConnMaxLifetime(30*time.Minute)  // 连接最多活30分钟
 
 ---
 
-### Day 14（高强度）— 第2周总结 + 补漏
+### Day 16（高强度）— 第2周总结 + 补漏
 
 **任务：**
 
@@ -1003,9 +1287,12 @@ sqlDB.SetConnMaxLifetime(30*time.Minute)  // 连接最多活30分钟
 □ Go 变量声明（var / := / const）懂了吗？
 □ Go 函数多返回值会用了吗？
 □ Go error 处理模式熟悉了吗？
-□ struct 和 tag 理解了吗？
+□ struct 和 tag 理解了吗？（特别是 json:"-" ）
 □ ServeMux 路由机制明白了吗？
 □ RecordVisit 四步流程能默写吗？
+□ Register / Login 的步骤能口述吗？
+□ bcrypt 和 JWT 各自的作用能说清吗？
+□ 中间件的工作流程明白了吗？
 □ 每个 GORM 操作对应哪条 SQL？
 □ 前端 fetch 到后端 handler 到 MySQL 全程能串起来吗？
 ```
@@ -1014,7 +1301,7 @@ sqlDB.SetConnMaxLifetime(30*time.Minute)  // 连接最多活30分钟
 
 ---
 
-### Day 15（低强度休息日）
+### Day 17（低强度休息日）
 
 - [ ] 学操作系统
 - [ ] 刷 1-2 题 LeetCode
@@ -1022,15 +1309,15 @@ sqlDB.SetConnMaxLifetime(30*time.Minute)  // 连接最多活30分钟
 
 ---
 
-# 第3周：数据库 + 其他模块
+# 第3周：数据库 + 认证精读 + 其他模块
 
 ## 周目标
 
-> 理解 MySQL 数据库操作，GORM 与 SQL 的对应关系，快速看懂其他模块。
+> 理解 MySQL 数据库操作，GORM 与 SQL 的对应关系，精读认证模块，快速看懂其他模块。
 
 ---
 
-### Day 16（高强度）— SSH 进 MySQL 实操
+### Day 18（高强度）— SSH 进 MySQL 实操
 
 SSH 到服务器：
 
@@ -1077,17 +1364,31 @@ DELETE FROM visit_stats WHERE visitor_ip = '127.0.0.1';
 -- 10. 理解索引
 SHOW INDEX FROM visit_stats;
 -- 看 unique_index 在哪列上（应该是 visitor_ip）
+
+-- 11. 看认证功能的 users 表
+DESCRIBE users;
+-- 对照 model.go 第59-64行
+
+-- 12. 查看注册的用户
+SELECT id, username, role, created_at FROM users;
+-- 看看密码哈希存在哪个字段？password_hash 列
+
+-- 13. 看看密码哈希长什么样（选一条记录）
+SELECT username, password_hash FROM users LIMIT 1;
+-- 应该类似 $2a$10$xxxxx... 这样的格式，60字符
+-- 这就是 bcrypt 哈希！同一个密码每次注册结果都不同
 ```
 
-**Day 16 过关标准：**
-- [ ] 上面10条SQL全部在服务器上执行过
+**Day 18 过关标准：**
+- [ ] 上面13条SQL全部在服务器上执行过
 - [ ] 每条SQL的执行结果都理解了
+- [ ] 能说出 users 表和 visit_stats 表的字段差异
 
 ---
 
-### Day 17（高强度）— GORM 与 SQL 对应
+### Day 19（高强度）— GORM 与 SQL 对应
 
-把 Day 16 每条 SQL 和 Go 代码对应上：
+把 Day 18 每条 SQL 和 Go 代码对应上：
 
 ```go
 database.Create(&newRecord)           ↔ INSERT INTO
@@ -1097,6 +1398,10 @@ database.Delete(&record)             ↔ DELETE WHERE
 database.Select("SUM(...)").Scan(&x)  ↔ SELECT SUM(...)
 database.Select("COUNT(*)").Scan(&x)  ↔ SELECT COUNT(*)
 database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
+
+// 认证模块的 GORM ↔ SQL（新增）
+database.Where("username = ?", name).First(&user)  ↔ SELECT * FROM users WHERE username='xxx' LIMIT 1
+database.Create(&user)                               ↔ INSERT INTO users (username, password_hash, role) VALUES (...)
 ```
 
 **动手练习（必须写）：**
@@ -1108,13 +1413,13 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 // 3. DELETE FROM visit_stats WHERE id = 1;
 ```
 
-**Day 17 过关标准：**
+**Day 19 过关标准：**
 - [ ] 每个 GORM 方法都能说出对应的 SQL
 - [ ] 练习跑通
 
 ---
 
-### Day 18（高强度）— 读其他 handler
+### Day 20（高强度）— 读其他 handler
 
 快速过 `todo.go`、`guestbook.go`、`setting.go`。
 你会发现模式和 `visit.go` 完全一样：
@@ -1130,13 +1435,13 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 | guestbook.go | CreateMessage / GetMessages | guestbook |
 | setting.go | GetSettings / UpdateSettings | settings |
 
-**Day 18 过关标准：**
+**Day 20 过关标准：**
 - [ ] 能说出每个 handler 的 CRUD 函数名
 - [ ] 能指出和 visit.go 的模式差异（如果有的话）
 
 ---
 
-### Day 19（高强度）— 数据库设计分析 + 动手改功能
+### Day 21（高强度）— 数据库设计分析 + 动手改功能
 
 **思考几个问题：**
 
@@ -1144,8 +1449,14 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 □ 为什么要用 visitor_ip 做 uniqueIndex？
   → 同一IP只存一条，多次访问更新count
 
+□ 为什么 username 也要 uniqueIndex？
+  → 防止两个用户注册同一个用户名
+
 □ DeletedAt 字段是干嘛的？
   → 软删除，GORM自带，DELETE时不真删而是标记时间
+
+□ password_hash 为什么用 json:"-"？
+  → 防止密码哈希通过API返回前端，安全！
 
 □ 如果要加 city 字段，需要改哪些文件？
   → model.go 加字段、handler/visit.go 写入 city、前端传 city 数据
@@ -1165,13 +1476,96 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 **选项 C（中等）：访问统计加一个"今日访问数"字段**
 
-**Day 19 过关标准：**
+**Day 21 过关标准：**
 - [ ] 选做的功能改动完成并部署验证
 - [ ] 能说出改了哪些文件、每处改动的原因
 
 ---
 
-### Day 20（低强度休息日）
+### Day 22（高强度）— 认证全链路精读
+
+**目标：从"点击登录按钮"到"看到用户名"，每一步都能说清。**
+
+**任务：画认证流程时序图**
+
+```
+注册流程：
+浏览器                              Go服务器                          MySQL
+  │                                   │                                │
+  │ ① 点击"注册" → AuthManager.handleSubmit()                        │
+  │ ② fetch POST /api/auth/register   │                                │
+  │ body: {username, password}         │                                │
+  │==================================▶│                                │
+  │                                   │ ③ json.Decode 解析body        │
+  │                                   │ ④ 参数校验（3字符/6位）         │
+  │                                   │ ⑤ SELECT WHERE username='...' │
+  │                                   │===============================▶│
+  │                                   │                          ⑥ 没找到=可以注册
+  │                                   │◀==============================│
+  │                                   │ ⑦ utils.HashPassword(password)│
+  │                                   │    bcrypt加密，约100ms          │
+  │                                   │ ⑧ INSERT INTO users           │
+  │                                   │===============================▶│
+  │                                   │                          ⑨ 写入成功
+  │                                   │◀==============================│
+  │                                   │ ⑩ sendJSON 201 Created       │
+  │◀==================================│                                │
+  │ ⑪ 注册成功 → 自动切换到登录弹窗    │                                │
+
+登录流程：
+浏览器                              Go服务器                          MySQL
+  │                                   │                                │
+  │ ① 点击"登录" → AuthManager.handleSubmit()                        │
+  │ ② fetch POST /api/auth/login      │                                │
+  │ body: {username, password}         │                                │
+  │==================================▶│                                │
+  │                                   │ ③ json.Decode 解析body        │
+  │                                   │ ④ SELECT WHERE username='...' │
+  │                                   │===============================▶│
+  │                                   │                          ⑤ 找到用户
+  │                                   │◀==============================│
+  │                                   │ ⑥ utils.CheckPassword(明文, 哈希)│
+  │                                   │    bcrypt验证，约100ms          │
+  │                                   │ ⑦ utils.GenerateToken(id,name,role)│
+  │                                   │    生成JWT，有效期24h           │
+  │                                   │ ⑧ session.Create() 记录会话    │
+  │                                   │ ⑨ sendJSON 200 + token        │
+  │◀==================================│                                │
+  │ ⑩ localStorage.setItem(token)     │                                │
+  │ ⑪ AuthManager.showLoggedIn(user)  │                                │
+  │ ⑫ 页面右上角显示"用户名 + 退出"    │                                │
+
+获取当前用户：
+浏览器                              Go服务器                          MySQL
+  │                                   │                                │
+  │ ① 页面加载 → AuthManager.checkAuthStatus()                       │
+  │ ② fetchWithAuth GET /api/auth/me  │                                │
+  │ Header: Authorization: Bearer jwt │                                │
+  │==================================▶│                                │
+  │                                   │ ③ AuthMiddleware 拦截           │
+  │                                   │    提取 Bearer token            │
+  │                                   │ ④ utils.ValidateToken(token)   │
+  │                                   │    验签名+过期时间               │
+  │                                   │ ⑤ context注入 userID/username   │
+  │                                   │ ⑥ GetCurrentUser()             │
+  │                                   │    从context取信息，不查DB！     │
+  │                                   │ ⑦ sendJSON 200                 │
+  │◀==================================│                                │
+  │ ⑧ token有效 → showLoggedIn()      │                                │
+  │    token无效 → clearToken + showLoggedOut()                        │
+```
+
+**每个步骤标注：对应代码哪个文件哪一行。**
+
+**Day 22 过关标准：**
+- [ ] 注册的 11 个步骤能口述
+- [ ] 登录的 12 个步骤能口述
+- [ ] 能解释为什么 GetCurrentUser 不需要查数据库（因为中间件已经从token解析出来了）
+- [ ] 能说出 localStorage 和 sessionStorage 的区别
+
+---
+
+### Day 23（低强度休息日）
 
 - [ ] 操作系统学习
 - [ ] 整理笔记
@@ -1186,9 +1580,9 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 21-22（高强度）— 第二轮精读 main.go + visit.go
+### Day 24-25（高强度）— 第二轮精读 main.go + visit.go + auth.go
 
-重新读 main.go、visit.go、index.html。
+重新读 main.go、visit.go、auth.go、index.html（3787-3903行 + 3905-4183行）。
 这次读应该比第一遍快很多。
 
 **标注：**
@@ -1197,7 +1591,7 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 23（高强度）— 安全和性能分析
+### Day 26（高强度）— 安全和性能分析
 
 带着审视的眼光重新看你的代码：
 
@@ -1205,10 +1599,12 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ```
 □ SQL注入？  → GORM参数化查询，安全 ✅
-□ XSS？      → 前端直接渲染数据，没转义 ⚠️
+□ XSS？      → AuthManager有escapeHtml()，部分防护 ✅ / 其他模块没转义 ⚠️
 □ CSRF？     → 没有token保护 ⚠️
-□ 密码明文？ → root密码为空 ⚠️
-□ 限流？     → 同一IP可以无限刷 visit ⚠️
+□ 密码明文？ → 用bcrypt加密存储 ✅ / 但root密码为空 ⚠️
+□ JWT密钥？  → 硬编码在代码里，生产环境应从环境变量读 ⚠️
+□ 限流？     → 同一IP可以无限刷 visit / 无限注册 ⚠️
+□ token过期？ → 24小时过期，但没有刷新token机制 ⚠️
 ```
 
 **性能问题：**
@@ -1219,15 +1615,15 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 □ 前端并发请求？       → POST完了再GET，可以优化并行 ⚠️
 ```
 
-**Day 23 过关标准：**
+**Day 26 过关标准：**
 - [ ] 能说出3个以上的安全隐患和对应的修复思路
 - [ ] 能说出2个以上的性能优化方向
 
 ---
 
-### Day 24（高强度）— 读 index.html 其他模块
+### Day 27（高强度）— 读 index.html 其他模块
 
-之前只读了访问统计（3530-3646行），现在读备忘录和留言板的前端代码：
+之前只读了访问统计（3787-3903行）和认证模块（3905-4183行），现在读备忘录和留言板的前端代码：
 
 ```
 □ 搜索 index.html 里的 todo 相关 JS → 对应 todo.go
@@ -1235,13 +1631,14 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 □ 找到前端 fetch 调用的 URL 和后端路由的对应关系
 ```
 
-**Day 24 过关标准：**
+**Day 27 过关标准：**
 - [ ] 能说出备忘录和留言板前端代码的位置
 - [ ] 能找到每个 fetch 调用对应的后端 handler
+- [ ] 能说出 AuthManager（3905-4183行）和访问统计IIFE（3787-3903行）的结构区别
 
 ---
 
-### Day 25（低强度休息日）
+### Day 28（低强度休息日）
 
 - [ ] 学操作系统
 - [ ] 刷 LeetCode
@@ -1257,7 +1654,7 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 26（低强度）— 回顾前4周
+### Day 29（低强度）— 回顾前4周
 
 重新过一遍所有笔记，标出：
 - 已完全理解的知识点
@@ -1266,7 +1663,7 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 27-28（高强度）— 画完整架构图
+### Day 30-31（高强度）— 画完整架构图
 
 **要求：不用看代码，凭记忆画。画完再对照代码修正。**
 
@@ -1274,33 +1671,46 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ```
 1. 前端层
-   ├── HTML 结构（页面布局）
-   ├── CSS 样式（主题、动画、响应式）
+   ├── HTML 结构（页面布局 + 认证弹窗）
+   ├── CSS 样式（主题、动画、响应式、认证弹窗样式）
    └── JS 逻辑
-       ├── 访问统计模块（IIFE + fetch + sessionStorage）
+       ├── 访问统计模块（IIFE + fetch + sessionStorage）第3787-3903行
+       ├── 用户认证模块（AuthManager + localStorage + JWT）第3905-4183行
        ├── 备忘录模块
        ├── 留言板模块
        └── 主题设置模块
 
 2. 后端层
-   ├── main.go（入口 + 路由注册）
+   ├── main.go（入口 + 路由注册 + 认证路由）
    ├── config.go（配置管理）
    ├── db.go（数据库连接 + 连接池）
-   ├── model.go（5个struct定义）
-   └── handler/
-       ├── visit.go（访问统计）
-       ├── todo.go（备忘录CRUD）
-       ├── guestbook.go（留言板）
-       ├── setting.go（设置）
-       └── helpers.go（sendJSON等工具函数）
+   ├── model.go（6个核心struct + 认证请求/响应struct）
+   ├── handler/
+   │   ├── visit.go（访问统计）
+   │   ├── auth.go（注册 + 登录 + 获取当前用户）★
+   │   ├── todo.go（备忘录CRUD）
+   │   ├── guestbook.go（留言板）
+   │   ├── setting.go（设置）
+   │   └── helpers.go（sendJSON等工具函数）
+   ├── middleware/
+   │   └── auth.go（JWT认证中间件）★
+   ├── session/
+   │   └── memory.go（Session管理）★
+   └── utils/
+       ├── jwt.go（JWT生成与验证）★
+       └── hash.go（bcrypt密码加密）★
 
 3. 数据库层
+   ├── users 表 ★（认证功能新增）
    ├── visit_stats 表
    ├── todos 表
    ├── guestbook 表
    └── settings 表
 
 4. 前后端连接
+   ├── POST /api/auth/register → Register → bcrypt → INSERT users ★
+   ├── POST /api/auth/login → Login → bcrypt验密 → JWT → 返回token ★
+   ├── GET /api/auth/me → AuthMiddleware(验token) → GetCurrentUser ★
    ├── POST /api/visit → RecordVisit
    ├── GET /api/visit/stats → GetVisitStats
    ├── CRUD /api/todos → TodoHandlers
@@ -1310,7 +1720,7 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 29-30（高强度）— 给别人讲
+### Day 32-33（高强度）— 给别人讲
 
 **找一个人（同学、室友、甚至对着手机录音），完整讲一遍：**
 
@@ -1320,12 +1730,15 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 4. 后端路由怎么匹配的
 5. GORM 怎么操作数据库的
 6. sessionStorage 怎么防刷新重复计数的
+7. 用户注册时密码是怎么加密存储的（bcrypt流程）
+8. 用户登录时token是怎么生成和验证的（JWT流程）
+9. 中间件是怎么拦截请求验token的
 
 **如果讲到一半卡住了 → 那个地方就是你还没完全理解的，回去补。**
 
 ---
 
-### Day 31（低强度休息日）
+### Day 34（低强度休息日）
 
 - [ ] 学操作系统
 - [ ] 刷 LeetCode
@@ -1340,7 +1753,7 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 ---
 
-### Day 32-33（高强度）— 最终验收
+### Day 35-36（高强度）— 最终验收
 
 **逐项检查：**
 
@@ -1349,20 +1762,24 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 □ 能说出任意一个 API 的完整调用链（前端→路由→handler→DB→返回→渲染）
 □ 能读懂 main.go 每一行
 □ 能读懂 handler/visit.go 每一行
-□ 能读懂 index.html 第3530-3646行 每一行
+□ 能读懂 handler/auth.go 每一行（Register/Login/GetCurrentUser）
+□ 能读懂 index.html 第3787-3903行 每一行
+□ 能读懂 index.html 第3905-4183行 AuthManager 每个方法
 □ 能说出 GORM 每个方法对应的 SQL
 □ 能解释 IIFE、sessionStorage、fetch、JSON 的作用
+□ 能解释 bcrypt、JWT、中间件、context 的作用
 □ 能给别人讲清楚"我的博客是怎么记录访问量的"
+□ 能给别人讲清楚"用户注册登录的完整流程"
 □ 至少做过一次功能改动并部署验证
 ```
 
-**有任何一项不通过的，Day 33 专门补。**
+**有任何一项不通过的，Day 36 专门补。**
 
 ---
 
-### Day 34-35（高强度）— 完善掘金文章 + 整理笔记
+### Day 37-38（高强度）— 完善掘金文章 + 整理笔记
 
-把 Day 5 的掘金文章草稿完善，加入后端和数据库的理解。
+把博客文章完善，加入后端、数据库和认证模块的理解。
 
 **文章升级版结构：**
 
@@ -1376,15 +1793,16 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 5. 解决方案（sessionStorage）
 6. 全链路流程图
 7. 知识总结
+8. 附录：用户认证系统实现（bcrypt + JWT + 中间件）
 ```
 
 ---
 
-### Day 36-38（低强度收尾）
+### Day 39-41（低强度收尾）
 
-- Day 36：整理所有笔记，按模块归档
-- Day 37：回顾整个学习过程，写一篇学习心得
-- Day 38：制定下一步计划（学什么？做什么项目？）
+- Day 39：整理所有笔记，按模块归档
+- Day 40：回顾整个学习过程，写一篇学习心得
+- Day 41：制定下一步计划（学什么？做什么项目？）
 
 ---
 
@@ -1396,26 +1814,36 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 | 概念 | 代码位置 | 一句话解释 |
 |------|---------|-----------|
-| IIFE | index.html 第3530行 | 定义完立刻执行的函数，防止全局污染 |
-| sessionStorage | index.html 第3596行 | 标签页级存储，关闭标签页就清空 |
-| fetch | index.html 第3600行 | 浏览器发HTTP请求的API |
-| JSON.stringify | index.html 第3603行 | JS对象转字符串 |
-| DOM操作 | index.html 第3576行 | 用JS修改HTML元素内容 |
-| navigator.userAgent | index.html 第3605行 | 浏览器自动提供的用户信息字符串 |
+| IIFE | index.html 第3787行 | 定义完立刻执行的函数，防止全局污染 |
+| sessionStorage | index.html 第3848行 | 标签页级存储，关闭标签页就清空 |
+| fetch | index.html 第3853行 | 浏览器发HTTP请求的API |
+| JSON.stringify | index.html 第3856行 | JS对象转字符串 |
+| DOM操作 | index.html 第3831行 | 用JS修改HTML元素内容 |
+| navigator.userAgent | index.html 第3805行 | 浏览器自动提供的用户信息字符串 |
+| localStorage | index.html 第3962行 | 浏览器持久化存储，关浏览器不丢（vs sessionStorage） |
+| AuthManager | index.html 第3916行 | 用户认证管理对象，封装登录/注册/token管理 |
+| fetchWithAuth | index.html 第3975行 | 自动带Authorization头的fetch |
+| escapeHtml | index.html 第4175行 | 防XSS：转义HTML特殊字符 |
 
 ### 后端核心概念
 
 | 概念 | 代码位置 | 一句话解释 |
 |------|---------|-----------|
-| 路由 | main.go 第206行 | URL路径和处理函数的映射 |
+| 路由 | main.go 第214行 | URL路径和处理函数的映射 |
+| 认证路由 | main.go 第230-254行 | /api/auth/* 三个路由的注册 |
 | handler | visit.go 第81行 | 接收请求、处理逻辑、返回响应的函数 |
 | json.Decode | visit.go 第82行 | 把JSON字符串解析成Go结构体 |
 | GORM Where | visit.go 第108行 | 对应SQL的WHERE条件 |
 | GORM Create | visit.go 第125行 | 对应SQL的INSERT |
 | GORM Updates | visit.go 第136行 | 对应SQL的UPDATE |
 | sendJSON | helpers.go | 统一把Go结构体编码成JSON返回给前端 |
-| ServeMux | main.go 第199行 | Go内置路由器 |
-| ListenAndServe | main.go 第238行 | 启动HTTP服务器，阻塞等待请求 |
+| ServeMux | main.go 第207行 | Go内置路由器 |
+| ListenAndServe | main.go 第276行 | 启动HTTP服务器，阻塞等待请求 |
+| bcrypt | utils/hash.go 第31行 | 密码哈希加密，自带盐值，每次加密结果不同 |
+| JWT | utils/jwt.go 第46行 | 无状态token认证，三段式 Header.Payload.Signature |
+| 中间件 | middleware/auth.go 第41行 | 请求的安检门，验token通过后才执行handler |
+| context | middleware/auth.go 第72行 | Go的上下文传递机制，中间件给handler传数据 |
+| Session | session/memory.go 第45行 | 服务端存储登录状态，当前用内存（重启丢失） |
 
 ### 数据库核心概念
 
@@ -1469,7 +1897,7 @@ database.Model(&model.VisitStats{}).Select("COUNT(*)").Scan(&count)
 
 ## C. HTTP 请求速查
 
-### fetch POST 示例（你的代码第3600行）
+### fetch POST 示例（你的代码第3853行）
 
 ```javascript
 fetch('/api/visit', {
@@ -1482,7 +1910,7 @@ fetch('/api/visit', {
 .catch(err => console.error(err)) // 错误处理
 ```
 
-### fetch GET 示例（你的代码第3617行）
+### fetch GET 示例（你的代码第3870行）
 
 ```javascript
 fetch('/api/visit/stats')    // 默认GET，不需要body
@@ -1498,6 +1926,41 @@ fetch('/api/visit/stats')    // 默认GET，不需要body
 | body | 没有 | 有 |
 | 你的代码里 | `/api/visit/stats` | `/api/visit` |
 | 语义 | 读 | 写 |
+
+### 认证 API 速查
+
+```javascript
+// 1. 注册（前端第4081行）
+fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'zhangsan', password: '123456' })
+})
+// 成功 → {code:0, data:{id:1, username:"zhangsan", role:"user"}}
+
+// 2. 登录（前端第4081行）
+fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'zhangsan', password: '123456' })
+})
+// 成功 → {code:0, data:{token:"eyJ...", user:{id:1, username:"zhangsan", role:"user"}}}
+
+// 3. 获取当前用户（前端第3996行，需要token）
+fetch('/api/auth/me', {
+    headers: { 'Authorization': 'Bearer eyJhbGciOi...' }
+})
+// 成功 → {code:0, data:{id:1, username:"zhangsan", role:"user"}}
+// 失败 → {code:401, message:"缺少认证token"}
+```
+
+### localStorage vs sessionStorage
+
+| | localStorage | sessionStorage |
+|---|---|---|
+| 生命周期 | 永久，除非手动删除 | 标签页关闭就清空 |
+| 你的代码用在哪 | 存JWT token（第3966行） | 存visit_recorded标记（第3849行） |
+| 为什么不同 | token要持久保持登录 | 访问标记只需本次会话 |
 
 ---
 
