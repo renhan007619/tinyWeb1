@@ -187,11 +187,9 @@ func testVisitStats() {
 //
 // 路由说明：
 //   - GET /api/health : 健康检查接口，返回服务器和数据库状态
+//   - /api/todos/*    : 备忘录 CRUD + 归档（已迁移到 GORM）
+//   - /api/focus/*    : 专注时间记录和统计（新增）
 //   - GET /           : 静态文件服务（index.html 等）
-//
-// 注意：原有的 API 路由（todo、setting、guestbook）暂时移除
-// 因为这些 handler 使用旧的 database/sql 接口，
-// 待后续迁移到 GORM 后会重新添加
 func startServer() {
 	// 获取项目根目录：优先使用 STATIC_DIR 环境变量，否则使用当前工作目录
 	rootDir := config.GetStaticDir()
@@ -253,6 +251,98 @@ func startServer() {
 		}
 	}))
 
+	// ---- 备忘录接口（从 database/sql 迁移到 GORM 后重新启用）----
+	// 这些接口之前因为使用旧接口被注释，现在用 GORM 重写后重新注册
+	mux.HandleFunc("/api/todos", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handler.GetTodos(w, r)
+		case http.MethodPost:
+			handler.CreateTodo(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/todos/archive", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.ArchiveTodos(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/todos/history/dates", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetTodoHistoryDates(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/todos/history", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetTodoHistoryByDate(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	// /api/todos/:id 必须放在 /api/todos/ 之后，避免匹配冲突
+	// Go 的 ServeMux 会将 /api/todos/ 前缀的请求路由到这里
+	mux.HandleFunc("/api/todos/", func(w http.ResponseWriter, r *http.Request) {
+		// 排除已注册的 /api/todos/archive 和 /api/todos/history 路径
+		path := r.URL.Path
+		if path == "/api/todos/archive" || path == "/api/todos/history" || path == "/api/todos/history/dates" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodPut:
+			handler.UpdateTodo(w, r)
+		case http.MethodDelete:
+			handler.DeleteTodo(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	})
+
+	// ---- 专注时间接口（Focus Time 功能新增）----
+	mux.HandleFunc("/api/focus/session", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.CreateFocusSession(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/focus/today", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetTodayFocus(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/focus/summary", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetFocusSummary(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/focus/history", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetFocusHistory(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+	mux.HandleFunc("/api/focus/tags", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handler.GetTags(w, r)
+		case http.MethodPost:
+			handler.CreateTag(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	})
+
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理
 	fs := http.FileServer(http.Dir(rootDir))
@@ -270,6 +360,21 @@ func startServer() {
 	fmt.Println("     POST /api/auth/register  用户注册")
 	fmt.Println("     POST /api/auth/login     用户登录 (Day2)")
 	fmt.Println("     GET  /api/auth/me        当前用户 (Day2, 需要token)")
+	fmt.Println("     ---- 备忘录 ----")
+	fmt.Println("     GET  /api/todos          获取任务列表")
+	fmt.Println("     POST /api/todos          新增任务")
+	fmt.Println("     PUT  /api/todos/:id      更新任务(打勾/编辑)")
+	fmt.Println("     DELETE /api/todos/:id    删除任务")
+	fmt.Println("     POST /api/todos/archive  归档任务")
+	fmt.Println("     GET  /api/todos/history  历史归档")
+	fmt.Println("     GET  /api/todos/history/dates 归档日期列表")
+	fmt.Println("     ---- 专注时间 ----")
+	fmt.Println("     POST /api/focus/session  创建专注记录")
+	fmt.Println("     GET  /api/focus/today    今日统计")
+	fmt.Println("     GET  /api/focus/summary  历史总览")
+	fmt.Println("     GET  /api/focus/history  某日详细记录")
+	fmt.Println("     GET  /api/focus/tags     标签列表")
+	fmt.Println("     POST /api/focus/tags     创建标签")
 	fmt.Println("========================================")
 
 	// 启动 HTTP 服务（带 CORS 中间件）

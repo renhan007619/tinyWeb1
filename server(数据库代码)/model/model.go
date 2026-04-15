@@ -281,6 +281,144 @@ type GuestbookListResponse struct {
 }
 
 // ============================================================
+// 专注时间相关模型（Focus Time 功能新增）
+// ============================================================
+
+// StudySession 一次专注/学习时段记录
+// 对应数据库 study_sessions 表，记录用户每次专注的详细信息
+//
+// 设计思路：
+//   - 以 user_id + date 为核心查询维度（按用户、按日期聚合统计）
+//   - Duration 存储秒数（前端转换为"X小时Y分钟"展示）
+//   - Tag 标识本次专注做了什么（如"Go语言开发"、"算法练习"）
+//   - TagColor 前端用于区分不同标签的显示颜色
+//   - Date 单独存日期字符串，避免每次查询都要从 started_at 提取日期
+//
+// 数据库表结构（由 GORM AutoMigrate 自动创建）：
+//   | 列名       | 类型          | 说明                        |
+//   |------------|---------------|----------------------------|
+//   | id         | bigint unsigned| 自增主键                    |
+//   | created_at | datetime(3)   | 创建时间                    |
+//   | updated_at | datetime(3)   | 更新时间                    |
+//   | deleted_at | datetime(3)   | 软删除时间                  |
+//   | user_id    | bigint unsigned| 关联用户ID（索引）           |
+//   | duration   | int           | 专注秒数（如1500=25分钟）    |
+//   | date       | date          | 日期 YYYY-MM-DD（索引）      |
+//   | started_at | datetime(3)   | 开始专注的时间               |
+//   | tag        | varchar(50)   | 标签名（如"Go语言开发"）      |
+//   | tag_color  | varchar(7)    | 标签颜色（如"#FF6B6B"）      |
+type StudySession struct {
+	gorm.Model
+	UserID    uint      `gorm:"index;not null" json:"user_id"`                    // 关联用户ID
+	Duration  int       `gorm:"not null" json:"duration"`                          // 本次专注秒数
+	Date      string    `gorm:"type:date;index;not null" json:"date"`              // 日期 YYYY-MM-DD
+	StartedAt time.Time `gorm:"not null" json:"started_at"`                        // 开始时间
+	Tag       string    `gorm:"type:varchar(50);index;not null" json:"tag"`         // 标签名
+	TagColor  string    `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
+}
+
+// TableName 指定 StudySession 对应的数据库表名
+func (StudySession) TableName() string {
+	return "study_sessions"
+}
+
+// StudyTag 用户自定义的专注标签模板
+// 对应数据库 study_tags 表，存储用户创建/使用的标签
+//
+// 设计思路：
+//   - uniqueIndex:user_tag 确保同一个用户不会有同名标签
+//   - Color 用于前端显示标签时的颜色标识
+//
+// 数据库表结构：
+//   | 列名       | 类型          | 说明                        |
+//   |------------|---------------|----------------------------|
+//   | id         | bigint unsigned| 自增主键                    |
+//   | created_at | datetime(3)   | 创建时间                    |
+//   | updated_at | datetime(3)   | 更新时间                    |
+//   | deleted_at | datetime(3)   | 软删除时间                  |
+//   | user_id    | bigint unsigned| 关联用户ID                   |
+//   | name       | varchar(50)   | 标签名（唯一索引）           |
+//   | color      | varchar(7)    | 标签颜色                    |
+type StudyTag struct {
+	gorm.Model
+	UserID uint   `gorm:"uniqueIndex:user_tag;not null" json:"user_id"` // 关联用户ID
+	Name   string `gorm:"uniqueIndex:user_tag;size:50;not null" json:"name"`  // 标签名
+	Color  string `gorm:"type:varchar(7);default:'#6C5CE7'" json:"color"`     // 显示颜色
+}
+
+// TableName 指定 StudyTag 对应的数据库表名
+func (StudyTag) TableName() string {
+	return "study_tags"
+}
+
+// ---- 专注时间 API 请求/响应结构体 ----
+
+// CreateFocusSessionRequest 创建专注记录的请求体
+// 前端 POST /api/focus/session 时提交的 JSON 数据
+type CreateFocusSessionRequest struct {
+	Duration int    `json:"duration" binding:"required,min=60,max=14400"` // 专注秒数（最少1分钟，最多4小时）
+	Tag      string `json:"tag"`                                          // 标签名
+	TagColor string `json:"tag_color"`                                    // 标签颜色
+}
+
+// CreateTagRequest 创建标签的请求体
+// 前端 POST /api/focus/tags 时提交的 JSON 数据
+type CreateTagRequest struct {
+	Name  string `json:"name" binding:"required"`  // 标签名（必填）
+	Color string `json:"color"`                    // 标签颜色（可选，默认#6C5CE7）
+}
+
+// TodayFocusResponse 今日学习统计响应
+// GET /api/focus/today 返回的数据
+type TodayFocusResponse struct {
+	TotalSeconds   int64        `json:"total_seconds"`    // 今日总专注秒数
+	TotalFormatted string       `json:"total_formatted"`  // 格式化的总时长（如"3小时25分钟"）
+	SessionCount   int64        `json:"session_count"`    // 今日专注次数
+	ByTag          []TagSummary `json:"by_tag"`           // 按标签分组的统计
+}
+
+// TagSummary 单个标签的汇总信息
+type TagSummary struct {
+	Tag        string  `json:"tag"`        // 标签名
+	Seconds    int64   `json:"seconds"`    // 该标签总秒数
+	Percentage float64 `json:"percentage"` // 占比（百分比，如 39.0 表示 39%）
+	Color      string  `json:"color"`      // 标签颜色
+}
+
+// FocusSummaryResponse 历史总览响应
+// GET /api/focus/summary 返回的数据
+type FocusSummaryResponse struct {
+	TotalSeconds   int64             `json:"total_seconds"`    // 历史总专注秒数
+	TotalFormatted string            `json:"total_formatted"`  // 格式化的总时长
+	TotalSessions  int64             `json:"total_sessions"`   // 总专注次数
+	DailyStats     []DailyStatItem   `json:"daily_stats"`      // 每日统计列表
+}
+
+// DailyStatItem 单日统计项
+type DailyStatItem struct {
+	Date           string `json:"date"`            // 日期 YYYY-MM-DD
+	TotalSeconds   int64  `json:"total_seconds"`   // 当日总秒数
+	TotalFormatted string `json:"total_formatted"` // 格式化时长
+	SessionCount   int64  `json:"session_count"`   // 当日专注次数
+}
+
+// FocusHistoryResponse 某日详细记录响应
+// GET /api/focus/history?date=2026-04-15 返回的数据
+type FocusHistoryResponse struct {
+	Date     string               `json:"date"`     // 日期
+	Sessions []StudySessionDetail `json:"sessions"` // 该日所有专注记录
+}
+
+// StudySessionDetail 单次专注记录的详细信息
+type StudySessionDetail struct {
+	ID        uint   `json:"id"`         // 记录ID
+	Duration  int    `json:"duration"`   // 专注秒数
+	Tag       string `json:"tag"`        // 标签名
+	TagColor  string `json:"tag_color"`  // 标签颜色
+	StartedAt string `json:"started_at"` // 开始时间（格式化后的字符串）
+}
+
+// ============================================================
 // API 统一响应模型
 // ============================================================
 
