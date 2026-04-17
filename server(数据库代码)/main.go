@@ -67,6 +67,12 @@ func main() {
 	}
 	fmt.Println("✅ users 表就绪")
 
+	// ---- 专注时间功能：自动创建 study_sessions 和 study_tags 表 ----
+	if err := db.GetDB().AutoMigrate(&model.StudySession{}, &model.StudyTag{}); err != nil {
+		log.Fatal("❌ 专注时间表自动迁移失败:", err)
+	}
+	fmt.Println("✅ study_sessions + study_tags 表就绪")
+
 	// ============================================================
 	// 步骤 3: 初始化测试数据库（tinyweb1_test）
 	// ============================================================
