@@ -47,20 +47,21 @@ import (
 //   - json:"-" 标签表示 PasswordHash 不会序列化到 JSON 返回前端（安全）
 //
 // 数据库表结构（由 GORM AutoMigrate 自动创建）：
-//   | 列名          | 类型          | 说明                    |
-//   |---------------|---------------|------------------------|
-//   | id            | bigint unsigned| 自增主键                |
-//   | created_at    | datetime(3)   | 创建时间                |
-//   | updated_at    | datetime(3)   | 更新时间                |
-//   | deleted_at    | datetime(3)   | 软删除时间              |
-//   | username      | varchar(50)   | 用户名（唯一索引）       |
-//   | password_hash | varchar(255)  | bcrypt密码哈希           |
-//   | role          | varchar(20)   | 角色：admin/user         |
+//
+//	| 列名          | 类型          | 说明                    |
+//	|---------------|---------------|------------------------|
+//	| id            | bigint unsigned| 自增主键                |
+//	| created_at    | datetime(3)   | 创建时间                |
+//	| updated_at    | datetime(3)   | 更新时间                |
+//	| deleted_at    | datetime(3)   | 软删除时间              |
+//	| username      | varchar(50)   | 用户名（唯一索引）       |
+//	| password_hash | varchar(255)  | bcrypt密码哈希           |
+//	| role          | varchar(20)   | 角色：admin/user         |
 type User struct {
 	gorm.Model
-	Username     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`      // 用户名（唯一）
-	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`                        // 密码哈希（不返回前端）
-	Role         string `gorm:"type:varchar(20);default:user;not null" json:"role"`         // 角色：admin / user
+	Username     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"` // 用户名（唯一）
+	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`                   // 密码哈希（不返回前端）
+	Role         string `gorm:"type:varchar(20);default:user;not null" json:"role"`    // 角色：admin / user
 }
 
 // TableName 指定 User 对应的数据库表名
@@ -69,7 +70,7 @@ func (User) TableName() string {
 }
 
 // RegisterRequest 注册请求体
-// 前端 POST /api/auth/register 时提交的 JSON 数据
+// 前端 POST /api/auth/register 时提交的 JSON 数据，接受前端发来的注册请求数据
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required"` // 用户名（必填，3-50字符）
 	Password string `json:"password" binding:"required"` // 密码（必填，6位以上）
@@ -84,8 +85,8 @@ type LoginRequest struct {
 
 // LoginResponse 登录成功响应数据
 type LoginResponse struct {
-	Token string   `json:"token"`  // JWT token
-	User  UserInfo `json:"user"`   // 用户信息
+	Token string   `json:"token"` // JWT token
+	User  UserInfo `json:"user"`  // 用户信息
 }
 
 // UserInfo 用户公开信息（不含密码）
@@ -109,21 +110,22 @@ type UserInfo struct {
 //   - 扩展字段（设备类型、浏览器、OS、来源）用于前端统计展示
 //
 // 数据库表结构（由 GORM AutoMigrate 自动创建）：
-//   | 列名           | 类型          | 说明                    |
-//   |----------------|---------------|------------------------|
-//   | id             | bigint unsigned| 自增主键（gorm.Model自带）|
-//   | created_at     | datetime(3)   | 记录创建时间             |
-//   | updated_at     | datetime(3)   | 记录更新时间             |
-//   | deleted_at     | datetime(3)   | 软删除时间（NULL=未删除）  |
-//   | visitor_ip     | varchar(45)   | 访客IP（唯一索引）        |
-//   | visit_count    | int           | 访问次数（默认1）         |
-//   | first_visit_at | datetime(3)   | 首次访问时间             |
-//   | last_visit_at  | datetime(3)   | 最后访问时间             |
-//   | user_agent     | varchar(500)  | 原始 User-Agent（备用）   |
-//   | device_type    | varchar(20)   | 设备类型                 |
-//   | browser        | varchar(50)   | 浏览器名称               |
-//   | os             | varchar(50)   | 操作系统                 |
-//   | referrer       | varchar(500)  | 来源页面                 |
+//
+//	| 列名           | 类型          | 说明                    |
+//	|----------------|---------------|------------------------|
+//	| id             | bigint unsigned| 自增主键（gorm.Model自带）|
+//	| created_at     | datetime(3)   | 记录创建时间             |
+//	| updated_at     | datetime(3)   | 记录更新时间             |
+//	| deleted_at     | datetime(3)   | 软删除时间（NULL=未删除）  |
+//	| visitor_ip     | varchar(45)   | 访客IP（唯一索引）        |
+//	| visit_count    | int           | 访问次数（默认1）         |
+//	| first_visit_at | datetime(3)   | 首次访问时间             |
+//	| last_visit_at  | datetime(3)   | 最后访问时间             |
+//	| user_agent     | varchar(500)  | 原始 User-Agent（备用）   |
+//	| device_type    | varchar(20)   | 设备类型                 |
+//	| browser        | varchar(50)   | 浏览器名称               |
+//	| os             | varchar(50)   | 操作系统                 |
+//	| referrer       | varchar(500)  | 来源页面                 |
 type VisitStats struct {
 	// gorm.Model 是 GORM 内置的基础模型，自动包含以下字段：
 	//   ID        uint           `gorm:"primarykey"`  // 自增主键
@@ -139,15 +141,15 @@ type VisitStats struct {
 	LastVisitAt  time.Time `gorm:"not null" json:"last_visit_at"`                           // 该访客最近一次访问的时间
 
 	// ---- 扩展字段（用于统计分析） ----
-	UserAgent  string `gorm:"type:varchar(500)" json:"user_agent"`  // 原始 User-Agent 字符串（保留原始数据，方便调试）
-	DeviceType string `gorm:"type:varchar(20)" json:"device_type"`  // 设备类型：mobile（手机）/ desktop（电脑）/ tablet（平板）
-	Browser    string `gorm:"type:varchar(50)" json:"browser"`      // 浏览器名称：Chrome / Safari / Firefox / Edge 等
-	OS         string `gorm:"type:varchar(50)" json:"os"`           // 操作系统：Windows / macOS / Linux / Android / iOS
-	Referrer   string `gorm:"type:varchar(500)" json:"referrer"`    // 访问来源页面 URL（如搜索引擎、直接访问等）
+	UserAgent  string `gorm:"type:varchar(500)" json:"user_agent"` // 原始 User-Agent 字符串（保留原始数据，方便调试）
+	DeviceType string `gorm:"type:varchar(20)" json:"device_type"` // 设备类型：mobile（手机）/ desktop（电脑）/ tablet（平板）
+	Browser    string `gorm:"type:varchar(50)" json:"browser"`     // 浏览器名称：Chrome / Safari / Firefox / Edge 等
+	OS         string `gorm:"type:varchar(50)" json:"os"`          // 操作系统：Windows / macOS / Linux / Android / iOS
+	Referrer   string `gorm:"type:varchar(500)" json:"referrer"`   // 访问来源页面 URL（如搜索引擎、直接访问等）
 }
 
 // TableName 指定 VisitStats 对应的数据库表名
-// GORM 默认会将结构体名转为蛇形复数（visit_stats），
+// GORM 默认会将结	构体名转为蛇形复数（visit_stats），
 // 这里显式指定以确保表名一致
 func (VisitStats) TableName() string {
 	return "visit_stats"
@@ -160,12 +162,12 @@ func (VisitStats) TableName() string {
 // VisitRecord 访问记录请求体
 // 前端 POST /api/visit 时提交的 JSON 数据
 type VisitRecord struct {
-	VisitorIP  string `json:"visitor_ip"`   // 访客 IP 地址
-	UserAgent  string `json:"user_agent"`   // 浏览器 User-Agent
-	DeviceType string `json:"device_type"`  // 设备类型：mobile/desktop/tablet
-	Browser    string `json:"browser"`      // 浏览器名称
-	OS         string `json:"os"`           // 操作系统
-	Referrer   string `json:"referrer"`     // 来源页面
+	VisitorIP  string `json:"visitor_ip"`  // 访客 IP 地址
+	UserAgent  string `json:"user_agent"`  // 浏览器 User-Agent
+	DeviceType string `json:"device_type"` // 设备类型：mobile/desktop/tablet
+	Browser    string `json:"browser"`     // 浏览器名称
+	OS         string `json:"os"`          // 操作系统
+	Referrer   string `json:"referrer"`    // 来源页面
 }
 
 // VisitStatsResponse 访问统计汇总响应
@@ -257,9 +259,9 @@ type ThemeUpdateRequest struct {
 // Guestbook 留言板留言结构体
 // 对应数据库 guestbook 表，存储访客的留言
 type Guestbook struct {
-	ID        int       `json:"id"`        // 留言唯一标识（自增主键）
-	Nickname  string    `json:"nickname"`  // 留言者昵称（可选，为空时显示"匿名访客"）
-	Content   string    `json:"content"`   // 留言内容（最长500字符）
+	ID        int       `json:"id"`         // 留言唯一标识（自增主键）
+	Nickname  string    `json:"nickname"`   // 留言者昵称（可选，为空时显示"匿名访客"）
+	Content   string    `json:"content"`    // 留言内容（最长500字符）
 	CreatedAt time.Time `json:"created_at"` // 发布时间
 }
 
@@ -295,24 +297,25 @@ type GuestbookListResponse struct {
 //   - Date 单独存日期字符串，避免每次查询都要从 started_at 提取日期
 //
 // 数据库表结构（由 GORM AutoMigrate 自动创建）：
-//   | 列名       | 类型          | 说明                        |
-//   |------------|---------------|----------------------------|
-//   | id         | bigint unsigned| 自增主键                    |
-//   | created_at | datetime(3)   | 创建时间                    |
-//   | updated_at | datetime(3)   | 更新时间                    |
-//   | deleted_at | datetime(3)   | 软删除时间                  |
-//   | user_id    | bigint unsigned| 关联用户ID（索引）           |
-//   | duration   | int           | 专注秒数（如1500=25分钟）    |
-//   | date       | date          | 日期 YYYY-MM-DD（索引）      |
-//   | started_at | datetime(3)   | 开始专注的时间               |
-//   | tag        | varchar(50)   | 标签名（如"Go语言开发"）      |
-//   | tag_color  | varchar(7)    | 标签颜色（如"#FF6B6B"）      |
+//
+//	| 列名       | 类型          | 说明                        |
+//	|------------|---------------|----------------------------|
+//	| id         | bigint unsigned| 自增主键                    |
+//	| created_at | datetime(3)   | 创建时间                    |
+//	| updated_at | datetime(3)   | 更新时间                    |
+//	| deleted_at | datetime(3)   | 软删除时间                  |
+//	| user_id    | bigint unsigned| 关联用户ID（索引）           |
+//	| duration   | int           | 专注秒数（如1500=25分钟）    |
+//	| date       | date          | 日期 YYYY-MM-DD（索引）      |
+//	| started_at | datetime(3)   | 开始专注的时间               |
+//	| tag        | varchar(50)   | 标签名（如"Go语言开发"）      |
+//	| tag_color  | varchar(7)    | 标签颜色（如"#FF6B6B"）      |
 type StudySession struct {
 	gorm.Model
-	UserID    uint      `gorm:"index;not null" json:"user_id"`                    // 关联用户ID
-	Duration  int       `gorm:"not null" json:"duration"`                          // 本次专注秒数
-	Date      string    `gorm:"type:date;index;not null" json:"date"`              // 日期 YYYY-MM-DD
-	StartedAt time.Time `gorm:"not null" json:"started_at"`                        // 开始时间
+	UserID    uint      `gorm:"index;not null" json:"user_id"`                      // 关联用户ID
+	Duration  int       `gorm:"not null" json:"duration"`                           // 本次专注秒数
+	Date      string    `gorm:"type:date;index;not null" json:"date"`               // 日期 YYYY-MM-DD
+	StartedAt time.Time `gorm:"not null" json:"started_at"`                         // 开始时间
 	Tag       string    `gorm:"type:varchar(50);index;not null" json:"tag"`         // 标签名
 	TagColor  string    `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
 }
@@ -330,20 +333,21 @@ func (StudySession) TableName() string {
 //   - Color 用于前端显示标签时的颜色标识
 //
 // 数据库表结构：
-//   | 列名       | 类型          | 说明                        |
-//   |------------|---------------|----------------------------|
-//   | id         | bigint unsigned| 自增主键                    |
-//   | created_at | datetime(3)   | 创建时间                    |
-//   | updated_at | datetime(3)   | 更新时间                    |
-//   | deleted_at | datetime(3)   | 软删除时间                  |
-//   | user_id    | bigint unsigned| 关联用户ID                   |
-//   | name       | varchar(50)   | 标签名（唯一索引）           |
-//   | color      | varchar(7)    | 标签颜色                    |
+//
+//	| 列名       | 类型          | 说明                        |
+//	|------------|---------------|----------------------------|
+//	| id         | bigint unsigned| 自增主键                    |
+//	| created_at | datetime(3)   | 创建时间                    |
+//	| updated_at | datetime(3)   | 更新时间                    |
+//	| deleted_at | datetime(3)   | 软删除时间                  |
+//	| user_id    | bigint unsigned| 关联用户ID                   |
+//	| name       | varchar(50)   | 标签名（唯一索引）           |
+//	| color      | varchar(7)    | 标签颜色                    |
 type StudyTag struct {
 	gorm.Model
-	UserID uint   `gorm:"uniqueIndex:user_tag;not null" json:"user_id"` // 关联用户ID
-	Name   string `gorm:"uniqueIndex:user_tag;size:50;not null" json:"name"`  // 标签名
-	Color  string `gorm:"type:varchar(7);default:'#6C5CE7'" json:"color"`     // 显示颜色
+	UserID uint   `gorm:"uniqueIndex:user_tag;not null" json:"user_id"`      // 关联用户ID
+	Name   string `gorm:"uniqueIndex:user_tag;size:50;not null" json:"name"` // 标签名
+	Color  string `gorm:"type:varchar(7);default:'#6C5CE7'" json:"color"`    // 显示颜色
 }
 
 // TableName 指定 StudyTag 对应的数据库表名
@@ -364,17 +368,17 @@ type CreateFocusSessionRequest struct {
 // CreateTagRequest 创建标签的请求体
 // 前端 POST /api/focus/tags 时提交的 JSON 数据
 type CreateTagRequest struct {
-	Name  string `json:"name" binding:"required"`  // 标签名（必填）
-	Color string `json:"color"`                    // 标签颜色（可选，默认#6C5CE7）
+	Name  string `json:"name" binding:"required"` // 标签名（必填）
+	Color string `json:"color"`                   // 标签颜色（可选，默认#6C5CE7）
 }
 
 // TodayFocusResponse 今日学习统计响应
 // GET /api/focus/today 返回的数据
 type TodayFocusResponse struct {
-	TotalSeconds   int64        `json:"total_seconds"`    // 今日总专注秒数
-	TotalFormatted string       `json:"total_formatted"`  // 格式化的总时长（如"3小时25分钟"）
-	SessionCount   int64        `json:"session_count"`    // 今日专注次数
-	ByTag          []TagSummary `json:"by_tag"`           // 按标签分组的统计
+	TotalSeconds   int64        `json:"total_seconds"`   // 今日总专注秒数
+	TotalFormatted string       `json:"total_formatted"` // 格式化的总时长（如"3小时25分钟"）
+	SessionCount   int64        `json:"session_count"`   // 今日专注次数
+	ByTag          []TagSummary `json:"by_tag"`          // 按标签分组的统计
 }
 
 // TagSummary 单个标签的汇总信息
@@ -388,10 +392,10 @@ type TagSummary struct {
 // FocusSummaryResponse 历史总览响应
 // GET /api/focus/summary 返回的数据
 type FocusSummaryResponse struct {
-	TotalSeconds   int64             `json:"total_seconds"`    // 历史总专注秒数
-	TotalFormatted string            `json:"total_formatted"`  // 格式化的总时长
-	TotalSessions  int64             `json:"total_sessions"`   // 总专注次数
-	DailyStats     []DailyStatItem   `json:"daily_stats"`      // 每日统计列表
+	TotalSeconds   int64           `json:"total_seconds"`   // 历史总专注秒数
+	TotalFormatted string          `json:"total_formatted"` // 格式化的总时长
+	TotalSessions  int64           `json:"total_sessions"`  // 总专注次数
+	DailyStats     []DailyStatItem `json:"daily_stats"`     // 每日统计列表
 }
 
 // DailyStatItem 单日统计项
@@ -426,9 +430,9 @@ type StudySessionDetail struct {
 // 所有 API 接口都使用此结构返回数据，便于前端统一处理
 // 成功时 code=0，失败时 code>0 并附带错误信息
 type APIResponse struct {
-	Code    int         `json:"code"`            // 状态码：0=成功, 其他=错误码
-	Message string      `json:"message"`         // 响应消息：成功时为 "success"，失败时为错误描述
-	Data    interface{} `json:"data,omitempty"`  // 响应数据（可选，查询接口有值）
+	Code    int         `json:"code"`           // 状态码：0=成功, 其他=错误码
+	Message string      `json:"message"`        // 响应消息：成功时为 "success"，失败时为错误描述
+	Data    interface{} `json:"data,omitempty"` // 响应数据（可选，查询接口有值）
 }
 
 // SuccessResponse 快速创建成功响应的辅助函数
