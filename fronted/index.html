@@ -2896,14 +2896,14 @@
 
         .focus-report-bubble {
             position: fixed;
-            top: 50%;
-            right: 24px;
+            top: 18%;
+            right: 8px;
             z-index: 10001;
             transform: scale(0);
             opacity: 0;
             width: 340px;
             max-width: 88vw;
-            max-height: 80vh;
+            max-height: 150vh;
             overflow-y: auto;
             background: var(--card-bg);
             border-radius: 22px;
@@ -6062,12 +6062,12 @@
                 var mini2 = document.getElementById('focusMiniBubble2');
                 var overlay = document.getElementById('focusReportOverlay');
 
-                // 计算主泡泡位置（右侧垂直居中）
-                var bubbleH = 460; // 预估高度
+                // 计算主泡泡位置（右侧偏上，高于左侧面板顶部）
+                var bubbleH = 720; // 预估高度（放大以提升位置，更高）
                 var viewH = window.innerHeight;
                 var topY = Math.max(40, (viewH - bubbleH) / 2);
                 bubble.style.top = topY + 'px';
-                bubble.style.right = '24px';
+                bubble.style.right = '100px'; // 离左侧面板更近
                 bubble.style.transform = '';
                 bubble.style.animation = '';
 
