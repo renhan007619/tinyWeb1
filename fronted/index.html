@@ -3890,6 +3890,7 @@
           11. Link Cards 3D倾斜
           12. Todo Memo 备忘录功能
     ============================================================ -->
+    <script src="quotes.js"></script>
     <script>
         // ==================== 1. Loading 加载动画隐藏 ====================
         // window.load事件：所有资源加载完成后触发
@@ -3989,8 +3990,8 @@
             document.getElementById('greeting_text').textContent = text;
         })();
 
-        // ==================== 6. 一言API + 打字机效果（Hitokoto）====================
-        // hitokoto.cn: 免费一言(名言)API，返回JSON: {hitokoto:"文字", from:"出处"}
+        // ==================== 6. 一言语录库 + 打字机效果 ====================
+        // 语录数据已移至独立文件 quotes.js
         
         // 打字机效果定时器变量
         var typeTimer = null;
@@ -4019,19 +4020,14 @@
             }, speed || 60);                           // 默认速度60ms/字
         }
 
-        // 获取一言数据：fetch API + Promise链
+        // 从本地语录库随机获取一条
         // isRefresh: true=打字机效果, false=直接显示
         function fetchHitokoto(isRefresh) {
-            fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k')
-                .then(r => r.json())           // 解析JSON响应
-                .then(function(data) {
-                    var textEl = document.getElementById('hitokoto_text');
-                    if (isRefresh) typeText(textEl, data.hitokoto, 50);   // 打字机效果
-                    else textEl.textContent = data.hitokoto;               // 直接显示
-                    // ||'無名': 如果from为空则使用默认值（逻辑或短路）
-                    document.getElementById('hitokoto_from').textContent = data.from || '無名';
-                })
-                .catch(function() {});         // 错误时静默忽略
+            var quote = hitokotoQuotes[Math.floor(Math.random() * hitokotoQuotes.length)];
+            var textEl = document.getElementById('hitokoto_text');
+            if (isRefresh) typeText(textEl, quote.text, 50);   // 打字机效果
+            else textEl.textContent = quote.text;               // 直接显示
+            document.getElementById('hitokoto_from').textContent = quote.from;
         }
         fetchHitokoto(false);                  // 首次加载
         setInterval(function() { fetchHitokoto(true); }, 30000);  // 每30秒刷新
@@ -4221,16 +4217,11 @@
             var card = this;
             if (card.classList.contains('refreshing')) return;
             card.classList.add('refreshing');
-            fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    typeText(document.getElementById('hitokoto_text'), data.hitokoto, 50);
-                    document.getElementById('hitokoto_from').textContent = data.from || '無名';
-                })
-                .catch(function() {})
-                .finally(function() {
-                    setTimeout(function() { card.classList.remove('refreshing'); }, 600);
-                });
+            // 从本地语录库随机取一条
+            var quote = hitokotoQuotes[Math.floor(Math.random() * hitokotoQuotes.length)];
+            typeText(document.getElementById('hitokoto_text'), quote.text, 50);
+            document.getElementById('hitokoto_from').textContent = quote.from;
+            setTimeout(function() { card.classList.remove('refreshing'); }, 600);
         });
 
         // ========== Link Cards 3D Tilt ==========
@@ -4311,7 +4302,7 @@
             function saveLocalHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
 
             // ============================================================
-            // API 请求封装（统一错误处理 + 自动降级）
+            // API 请求封装（使用 AuthManager.fetchWithAuth 带认证token）
             // 所有与后端的通信都通过此函数发起
             // 返回值：{ ok: boolean, data: any, error: string|null }
             // ============================================================
@@ -4320,9 +4311,18 @@
                 if (!options.headers) options.headers = {};
                 options.headers['Content-Type'] = 'application/json';
 
-                return fetch(url, options)
-                    .then(function(res) { return res.json(); })
+                return AuthManager.fetchWithAuth(url, options)
+                    .then(function(res) {
+                        // 401 未登录 → 弹登录框
+                        if (res.status === 401) {
+                            AuthManager._pendingTodo = true;
+                            AuthManager.showModal('login');
+                            return { ok: false, error: '请先登录', authError: true };
+                        }
+                        return res.json();
+                    })
                     .then(function(json) {
+                        if (!json) return { ok: false, error: '未登录', authError: true };
                         if (json.code === 0) {
                             return { ok: true, data: json.data };
                         } else {
@@ -4660,6 +4660,12 @@
             // ============================================================
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                // 未登录 → 弹登录框
+                if (!AuthManager.getToken()) {
+                    AuthManager._pendingTodo = true;
+                    AuthManager.showModal('login');
+                    return;
+                }
                 if (historyPanel.classList.contains('open')) historyPanel.classList.remove('open');
                 panel.classList.toggle('open');
                 if (panel.classList.contains('open')) refreshAndRender(); // 打开时刷新数据
@@ -5221,6 +5227,11 @@
                             if (self._pendingFocus) {
                                 self._pendingFocus = false;
                                 FocusTimer.showPanel();
+                            }
+                            // 如果是从备忘录触发的登录，自动打开备忘录面板
+                            if (self._pendingTodo) {
+                                self._pendingTodo = false;
+                                document.getElementById('todoToggle').click();
                             }
                         }
                     } else {
@@ -6376,3 +6387,4 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </body>
 </html>
+
