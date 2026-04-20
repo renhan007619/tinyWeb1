@@ -73,6 +73,12 @@ func main() {
 	}
 	fmt.Println("✅ study_sessions + study_tags 表就绪")
 
+	// ---- 留言板功能：自动创建 guestbook 表 ----
+	if err := db.GetDB().AutoMigrate(&model.Guestbook{}); err != nil {
+		log.Fatal("❌ 留言板表自动迁移失败:", err)
+	}
+	fmt.Println("✅ guestbook 表就绪")
+
 	// ============================================================
 	// 步骤 3: 初始化测试数据库（tinyweb1_test）
 	// ============================================================
@@ -307,6 +313,18 @@ func startServer() {
 		}
 	}))
 
+	// ---- 留言板接口（无需登录认证，公开访问）----
+	mux.HandleFunc("/api/guestbook", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handler.GetGuestbookMessages(w, r)
+		case http.MethodPost:
+			handler.CreateGuestbookMessage(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	})
+
 	// ---- 专注时间接口（需登录认证）----
 	mux.HandleFunc("/api/focus/session", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -372,6 +390,9 @@ func startServer() {
 	fmt.Println("     POST /api/todos/archive  归档任务")
 	fmt.Println("     GET  /api/todos/history  历史归档")
 	fmt.Println("     GET  /api/todos/history/dates 归档日期列表")
+	fmt.Println("     ---- 留言板 ----")
+	fmt.Println("     GET  /api/guestbook      获取留言列表")
+	fmt.Println("     POST /api/guestbook      发布留言")
 	fmt.Println("     ---- 专注时间 ----")
 	fmt.Println("     POST /api/focus/session  创建专注记录")
 	fmt.Println("     GET  /api/focus/today    今日统计")

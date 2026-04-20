@@ -1,5 +1,3 @@
-//go:build ignore
-
 // Package handler 提供留言板（Guestbook）相关的 HTTP API handlers
 // =============================================
 // 作用：
@@ -29,7 +27,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
 	"tinyweb1/db"
 	"tinyweb1/model"
@@ -78,36 +75,19 @@ func GetGuestbookMessages(w http.ResponseWriter, r *http.Request) {
 		size = 100 // 单次最多拉取100条
 	}
 
-	// 查询总数（用于计算总页数）
+	// 查询总数
 	var total int64
-	err := database.QueryRow("SELECT COUNT(*) FROM guestbook").Scan(&total)
-	if err != nil {
+	if err := database.Model(&model.Guestbook{}).Count(&total).Error; err != nil {
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询留言总数失败"))
 		return
 	}
 
-	// 计算偏移量（OFFSET）
-	offset := (page - 1) * size
-
 	// 分页查询留言列表（按 ID 降序 = 最新在前）
-	rows, err := database.Query(
-		"SELECT id, nickname, content, created_at FROM guestbook ORDER BY id DESC LIMIT ? OFFSET ?",
-		size, offset,
-	)
-	if err != nil {
+	var messages []model.Guestbook
+	offset := (page - 1) * size
+	if err := database.Order("id DESC").Limit(size).Offset(offset).Find(&messages).Error; err != nil {
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询留言列表失败"))
 		return
-	}
-	defer rows.Close()
-
-	// 遍历结果集构建列表
-	var messages []model.Guestbook
-	for rows.Next() {
-		var m model.Guestbook
-		if err := rows.Scan(&m.ID, &m.Nickname, &m.Content, &m.CreatedAt); err != nil {
-			continue
-		}
-		messages = append(messages, m)
 	}
 
 	// 计算总页数
@@ -157,9 +137,7 @@ func CreateGuestbookMessage(w http.ResponseWriter, r *http.Request) {
 
 	// 清理和校验昵称
 	req.Nickname = strings.TrimSpace(req.Nickname)
-	if req.Nickname == "" {
-		req.Nickname = "" // 保持为空，前端会显示"匿名访客"
-	} else if len(req.Nickname) > 64 {
+	if len(req.Nickname) > 64 {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "昵称不能超过64个字符"))
 		return
 	}
@@ -184,34 +162,14 @@ func CreateGuestbookMessage(w http.ResponseWriter, r *http.Request) {
 
 	database := db.GetDB()
 
-	// 插入新留言
-	result, err := database.Exec(
-		"INSERT INTO guestbook (nickname, content) VALUES (?, ?)",
-		req.Nickname, req.Content,
-	)
-	if err != nil {
+	// 创建新留言
+	msg := model.Guestbook{
+		Nickname: req.Nickname,
+		Content:  req.Content,
+	}
+	if err := database.Create(&msg).Error; err != nil {
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "发布留言失败"))
 		return
-	}
-
-	// 获取新插入记录的 ID
-	lastID, _ := result.LastInsertId()
-
-	// 查询完整记录用于返回
-	var msg model.Guestbook
-	err = database.QueryRow(
-		"SELECT id, nickname, content, created_at FROM guestbook WHERE id = ?",
-		lastID,
-	).Scan(&msg.ID, &msg.Nickname, &msg.Content, &msg.CreatedAt)
-
-	if err != nil {
-		// 插入成功但查询失败（极端情况），仍返回成功
-		msg = model.Guestbook{
-			ID:        int(lastID),
-			Nickname:  req.Nickname,
-			Content:   req.Content,
-			CreatedAt: time.Now(),
-		}
 	}
 
 	sendJSON(w, http.StatusCreated, model.SuccessResponse(msg))
@@ -220,32 +178,6 @@ func CreateGuestbookMessage(w http.ResponseWriter, r *http.Request) {
 // ============================================================
 // 内部工具函数
 // ============================================================
-
-// parseIntQueryParam 从 URL Query 中解析整数参数
-// 如果参数不存在或解析失败，返回默认值 defaultValue
-func parseIntQueryParam(r *http.Request, key string, defaultValue int) int {
-	value := r.URL.Query().Get(key)
-	if value == "" {
-		return defaultValue
-	}
-	result := 0
-	// 手动实现简单的字符串转整数
-	isNegative := false
-	for i, c := range value {
-		if i == 0 && c == '-' {
-			isNegative = true
-			continue
-		}
-		if c < '0' || c > '9' {
-			return defaultValue
-		}
-		result = result*10 + int(c-'0')
-	}
-	if isNegative {
-		result = -result
-	}
-	return result
-}
 
 // stripHTMLTags 去除字符串中的所有 HTML 标签
 // 防止 XSS（跨站脚本攻击）：用户输入 <script>alert('xss')</script> 会被过滤为 alert('xss')

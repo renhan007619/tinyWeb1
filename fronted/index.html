@@ -4727,13 +4727,21 @@
                 }
             });
 
-            // 初始加载当前分类的数据
-            fetchTodos().then(function(todos) {
-                var localData = loadLocalTodos();
-                localData[currentTab] = todos;
-                saveLocalTodos(localData);
-                renderFromLocal();
-            });
+            // 初始加载当前分类的数据（等待 AuthManager 初始化完成）
+            function initLoadTodos() {
+                // 防御：等待 AuthManager 初始化完成
+                if (!window.AuthManager || !window.AuthManager.fetchWithAuth) {
+                    setTimeout(initLoadTodos, 100);
+                    return;
+                }
+                fetchTodos().then(function(todos) {
+                    var localData = loadLocalTodos();
+                    localData[currentTab] = todos;
+                    saveLocalTodos(localData);
+                    renderFromLocal();
+                });
+            }
+            initLoadTodos();
         })();
 
         // ========== Guestbook (留言板) ==========
@@ -6285,12 +6293,17 @@
                         document.getElementById('focusTotalSessions').textContent = totalSessions;
 
                         // 构建近7天日期标签（即使没数据也要显示）
+                        // 注意：使用本地时区日期，与后端保持一致
                         var dayLabels = [];
                         var dayData = [];
                         for (var i = 6; i >= 0; i--) {
                             var d = new Date();
                             d.setDate(d.getDate() - i);
-                            var dateStr = d.toISOString().slice(0, 10); // YYYY-MM-DD
+                            // 使用本地时区格式化日期，避免 UTC 转换导致时区不匹配
+                            var year = d.getFullYear();
+                            var month = String(d.getMonth() + 1).padStart(2, '0');
+                            var day = String(d.getDate()).padStart(2, '0');
+                            var dateStr = year + '-' + month + '-' + day; // YYYY-MM-DD (本地时间)
                             var shortLabel = (d.getMonth() + 1) + '/' + d.getDate();
                             dayLabels.push(shortLabel);
 
