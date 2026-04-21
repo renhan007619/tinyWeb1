@@ -6191,10 +6191,16 @@
                         var labels = [];
                         var data = [];
                         var colors = [];
-                        byTag.forEach(function(t) {
+                        // 预定义的颜色数组，确保不同标签有不同颜色
+                        var presetColors = ['#FF6B6B', '#00B894', '#0984E3', '#FDCB6E', '#E17055', '#6C5CE7', '#00CEC9', '#FD79A8'];
+                        byTag.forEach(function(t, index) {
                             labels.push(t.tag);
                             data.push(Math.round(t.seconds / 60)); // 转为分钟
-                            colors.push(t.color || '#6c5ce7');
+                            // 优先使用后端返回的颜色，如果没有则使用预设颜色
+                            var color = t.color || presetColors[index % presetColors.length];
+                            colors.push(color);
+                            // 更新数据中的颜色，确保图例颜色一致
+                            t.color = color;
                         });
 
                         // 销毁旧图表
@@ -6280,43 +6286,54 @@
                 AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/summary?days=7')
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
-                        if (res.code !== 0 || !res.data) return;
-                        var dailyStats = res.data.daily_stats || [];
-
-                        // 渲染累计成就（以小时为单位）
-                        var totalSeconds = res.data.total_seconds || 0;
-                        var hours = (totalSeconds / 3600).toFixed(1);
-                        // 如果是整数则去掉小数点
-                        if (hours.endsWith('.0')) hours = hours.slice(0, -2);
-                        var totalSessions = res.data.total_sessions || 0;
-                        document.getElementById('focusTotalTime').textContent = hours + '小时';
-                        document.getElementById('focusTotalSessions').textContent = totalSessions;
+                        // 销毁旧图表（即使没数据也要销毁）
+                        if (self._barChart) {
+                            self._barChart.destroy();
+                            self._barChart = null;
+                        }
 
                         // 构建近7天日期标签（即使没数据也要显示）
-                        // 注意：使用本地时区日期，与后端保持一致
                         var dayLabels = [];
                         var dayData = [];
                         for (var i = 6; i >= 0; i--) {
                             var d = new Date();
                             d.setDate(d.getDate() - i);
-                            // 使用本地时区格式化日期，避免 UTC 转换导致时区不匹配
-                            var year = d.getFullYear();
-                            var month = String(d.getMonth() + 1).padStart(2, '0');
-                            var day = String(d.getDate()).padStart(2, '0');
-                            var dateStr = year + '-' + month + '-' + day; // YYYY-MM-DD (本地时间)
                             var shortLabel = (d.getMonth() + 1) + '/' + d.getDate();
                             dayLabels.push(shortLabel);
-
-                            // 查找当天数据
-                            var found = dailyStats.find(function(s) { return s.date === dateStr; });
-                            dayData.push(found ? Math.round(found.total_seconds / 60) : 0);
+                            dayData.push(0); // 默认0，后面再填充实际数据
                         }
 
-                        // 销毁旧图表
-                        if (self._barChart) {
-                            self._barChart.destroy();
-                            self._barChart = null;
+                        // 处理返回的数据
+                        var dailyStats = [];
+                        var totalSeconds = 0;
+                        var totalSessions = 0;
+
+                        if (res.code === 0 && res.data) {
+                            dailyStats = res.data.daily_stats || [];
+                            totalSeconds = res.data.total_seconds || 0;
+                            totalSessions = res.data.total_sessions || 0;
+
+                            // 填充实际数据
+                            for (var j = 0; j < 7; j++) {
+                                var d = new Date();
+                                d.setDate(d.getDate() - (6 - j));
+                                var year = d.getFullYear();
+                                var month = String(d.getMonth() + 1).padStart(2, '0');
+                                var day = String(d.getDate()).padStart(2, '0');
+                                var dateStr = year + '-' + month + '-' + day;
+
+                                var found = dailyStats.find(function(s) { return s.date === dateStr; });
+                                if (found) {
+                                    dayData[j] = Math.round(found.total_seconds / 60);
+                                }
+                            }
                         }
+
+                        // 渲染累计成就（以小时为单位）
+                        var hours = (totalSeconds / 3600).toFixed(1);
+                        if (hours.endsWith('.0')) hours = hours.slice(0, -2);
+                        document.getElementById('focusTotalTime').textContent = hours + '小时';
+                        document.getElementById('focusTotalSessions').textContent = totalSessions;
 
                         var isDark = !document.documentElement.classList.contains('light');
                         var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
@@ -6366,7 +6383,64 @@
                     })
                     .catch(function(err) {
                         console.warn('[FocusTimer] 加载条形图数据失败:', err);
+                        // 即使出错也渲染空图表
+                        self._drawEmptyBarChart();
                     });
+            },
+
+            // ---- 无数据时绘制空条形图 ----
+            _drawEmptyBarChart: function() {
+                if (this._barChart) {
+                    this._barChart.destroy();
+                    this._barChart = null;
+                }
+
+                var dayLabels = [];
+                for (var i = 6; i >= 0; i--) {
+                    var d = new Date();
+                    d.setDate(d.getDate() - i);
+                    dayLabels.push((d.getMonth() + 1) + '/' + d.getDate());
+                }
+
+                var isDark = !document.documentElement.classList.contains('light');
+                var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+                var textColor = isDark ? '#aaa' : '#888';
+
+                var ctx = document.getElementById('focusBarChart').getContext('2d');
+                this._barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dayLabels,
+                        datasets: [{
+                            label: '专注(分钟)',
+                            data: [0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(108, 92, 231, 0.3)',
+                            borderColor: '#6c5ce7',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        indexAxis: 'x',
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, font: { size: 10 } }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: textColor, font: { size: 10 } }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    }
+                });
             },
 
             // ---- 加载今日历史记录列表 ----
