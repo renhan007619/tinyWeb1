@@ -2896,15 +2896,32 @@
 
         .focus-report-bubble {
             position: fixed;
-            top: 18%;
+            top: 20px;
             right: 8px;
             z-index: 10001;
             transform: scale(0);
             opacity: 0;
             width: 340px;
             max-width: 88vw;
-            max-height: 150vh;
+            max-height: calc(100vh - 40px);
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-dim) transparent;
+        }
+        .focus-report-bubble::-webkit-scrollbar {
+            width: 4px;
+        }
+        .focus-report-bubble::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .focus-report-bubble::-webkit-scrollbar-thumb {
+            background: var(--text-dim);
+            border-radius: 4px;
+        }
+        .focus-report-bubble::-webkit-scrollbar-thumb:hover {
+            background: var(--text-sub);
+        }
+        .focus-report-bubble {
             background: var(--card-bg);
             border-radius: 22px;
             padding: 22px 20px;
@@ -3060,6 +3077,21 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-dim) transparent;
+        }
+        .focus-history-list::-webkit-scrollbar {
+            width: 3px;
+        }
+        .focus-history-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .focus-history-list::-webkit-scrollbar-thumb {
+            background: var(--text-dim);
+            border-radius: 3px;
         }
         .focus-history-empty {
             text-align: center;
@@ -3183,9 +3215,11 @@
                 font-size: 1rem;
             }
             .focus-report-bubble {
+                top: 10px;
                 right: 8px;
                 width: 300px;
                 max-width: 85vw;
+                max-height: calc(100vh - 20px);
                 padding: 16px 14px;
                 border-radius: 18px;
             }
@@ -4291,7 +4325,14 @@
 
             function loadLocalTodos() {
                 try {
-                    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { life: [], study: [], important: [] };
+                    var data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { life: [], study: [], important: [] };
+                    // 清理没有 id 的无效缓存数据（API 迁移遗留问题）
+                    ['life', 'study', 'important'].forEach(function(cat) {
+                        if (data[cat]) {
+                            data[cat] = data[cat].filter(function(t) { return t && t.id !== undefined && t.id !== null; });
+                        }
+                    });
+                    return data;
                 } catch(e) { return { life: [], study: [], important: [] }; }
             }
             function saveLocalTodos(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
@@ -4398,8 +4439,9 @@
                             refreshAndRender();
                         } else {
                             // 降级：本地更新
-                            todos[idx].done = newDone;
-                            saveLocalTodos(loadLocalTodos());
+                            var localData = loadLocalTodos();
+                            localData[currentTab][idx].done = newDone;
+                            saveLocalTodos(localData);
                             renderFromLocal();
                         }
                     });

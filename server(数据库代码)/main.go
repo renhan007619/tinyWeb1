@@ -79,6 +79,12 @@ func main() {
 	}
 	fmt.Println("✅ guestbook 表就绪")
 
+	// ---- 备忘录功能：自动创建 todos 和 todo_history 表 ----
+	if err := db.GetDB().AutoMigrate(&model.Todo{}, &model.TodoHistory{}); err != nil {
+		log.Fatal("❌ 备忘录表自动迁移失败:", err)
+	}
+	fmt.Println("✅ todos + todo_history 表就绪")
+
 	// ============================================================
 	// 步骤 3: 初始化测试数据库（tinyweb1_test）
 	// ============================================================
