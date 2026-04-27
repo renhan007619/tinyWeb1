@@ -1001,30 +1001,30 @@ timer = setInterval(() => {
 
 ---
 
-### Day 18（高强度）— 第二轮精读 main.go + visit.go
+### Day 23（高强度）— 第二轮精读 main.go + visit.go
 
 重新读，标注：
 - 懂了的地方 → 绿色
 - 还不懂 → 红色，重点攻克
 
-**Day 18 过关标准：**
+**Day 23 过关标准：**
 - [ ] 没有红色标记
 - [ ] 能不看代码默写 RecordVisit 四步
 
 ---
 
-### Day 19（高强度）— 第二轮精读 auth.go + index.html
+### Day 24（高强度）— 第二轮精读 auth.go + index.html
 
 重新读 auth.go 和 index.html（3787-3903行 + 3905-4183行）。
 
-**Day 19 过关标准：**
+**Day 24 过关标准：**
 - [ ] auth.go 没有红色标记
 - [ ] 能不看代码口述 Login 七步
 - [ ] 能说出 AuthManager 的主要方法名和作用
 
 ---
 
-### Day 20（高强度）— 安全和性能分析
+### Day 25（中强度）— 安全和性能分析
 
 **安全问题：**
 
@@ -1046,13 +1046,13 @@ timer = setInterval(() => {
 ✅ 连接池 → MaxOpenConns=10，小项目够了
 ```
 
-**Day 20 过关标准：**
+**Day 21 过关标准：**
 - [ ] 能说出3个以上安全隐患和修复思路
 - [ ] 能说出2个以上性能优化方向
 
 ---
 
-### Day 21（高强度）— 读 index.html 其他模块
+### Day 22（高强度）— 读 index.html 其他模块
 
 ```
 □ 搜索 todo 相关 JS → 对应 todo.go
@@ -1060,7 +1060,7 @@ timer = setInterval(() => {
 □ 找到前端 fetch URL 和后端路由的对应关系
 ```
 
-**Day 21 过关标准：**
+**Day 22 过关标准：**
 - [ ] 能说出备忘录和留言板前端代码的位置
 - [ ] 能找到每个 fetch 对应的后端 handler
 - [ ] 能说出 AuthManager 和 IIFE 的结构区别
