@@ -21,7 +21,7 @@
     var gameOverScreen = document.getElementById('gameOverScreen');
     
     // 游戏变量
-    var bird = { x: 80, y: 250, velocity: 0, radius: 16, rotation: 0 };
+    var bird = { x: 80, y: 250, velocity: 0, radius: 16, rotation: 0, wingAngle: 0 };
     var pipes = [];
     var score = 0;
     var frameCount = 0;
@@ -145,11 +145,20 @@
         ctx.closePath();
         ctx.fill();
         
-        // 翅膀
+        // 翅膀 - 动态扇动效果
+        ctx.save();
+        ctx.translate(-6, 2);
+        ctx.rotate(bird.wingAngle);
         ctx.fillStyle = '#d4956d';
         ctx.beginPath();
-        ctx.ellipse(-8, 4, 8, 5, -0.3, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2);
         ctx.fill();
+        // 翅膀阴影
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath();
+        ctx.ellipse(2, 2, 9, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
         
         ctx.restore();
     }
@@ -198,6 +207,15 @@
         
         // 更新旋转角度
         bird.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, bird.velocity * 0.1));
+        
+        // 翅膀扇动动画 - 上升时快速扇动，下落时缓慢
+        if (bird.velocity < 0) {
+            // 上升时快速扇动
+            bird.wingAngle = Math.sin(frameCount * 0.4) * 0.6;
+        } else {
+            // 下落时缓慢扇动
+            bird.wingAngle = Math.sin(frameCount * 0.1) * 0.3;
+        }
         
         // 检查地面碰撞
         if (bird.y + bird.radius >= CANVAS_HEIGHT - 50) {
@@ -296,6 +314,7 @@
         bird.y = 250;
         bird.velocity = 0;
         bird.rotation = 0;
+        bird.wingAngle = 0;
         pipes = [];
         score = 0;
         frameCount = 0;
