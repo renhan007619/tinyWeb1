@@ -1,4 +1,4 @@
-// Package handler 共享工具函数
+		// Package handler 共享工具函数
 // =============================================
 // 作用：
 //   提供 handler 包内通用的辅助函数，包括 JSON 响应发送、字符串处理等。
@@ -33,6 +33,7 @@ func trimString(s string) string {
 				result[i] = c
 				i++
 			}
+		
 		} else {
 			started = true
 			result[i] = c
