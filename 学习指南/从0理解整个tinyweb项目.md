@@ -592,7 +592,101 @@ func login(username, password string) string {
 
 ---
 
-### Day 10（高强度）— 读 utils/ + middleware/ + session/
+### Day 10（高强度）— 读 handler/focus.go（专注时间核心！）
+
+**比 auth.go 更复杂的业务逻辑，涉及统计查询和数据聚合。**
+
+#### 文件结构概览（330行，6个API）
+
+| API | 方法 | 功能 |
+|-----|------|------|
+| `/api/focus/session` | POST | 创建专注记录 |
+| `/api/focus/today` | GET | 获取今日统计（含标签占比） |
+| `/api/focus/summary` | GET | 获取历史总览（每日统计） |
+| `/api/focus/history` | GET | 获取某日详细记录 |
+| `/api/focus/tags` | POST/GET | 标签管理 |
+
+#### CreateFocusSession（第65-113行）— 创建专注记录
+
+```
+1. json.Decode 解析 body → CreateFocusSessionRequest
+2. 参数校验（duration 60-14400秒，即1分钟到4小时）
+3. 设置默认标签（"未分类"、默认颜色#6C5CE7）
+4. 组装 StudySession 结构体（UserID从JWT context取）
+5. INSERT 插入数据库
+6. 返回创建的记录
+```
+
+#### GetTodayFocus（第119-167行）— 今日统计 ★复杂
+
+```
+1. 查询今日所有记录（Where user_id=? AND date=?）
+2. 遍历计算：总秒数、按标签分组累加
+3. 计算每个标签的百分比（Seconds/TotalSeconds*100）
+4. 组装 TodayFocusResponse 返回
+```
+
+**关键代码模式：**
+```go
+tagMap := make(map[string]*model.TagSummary)
+for _, s := range sessions {
+    totalSeconds += int64(s.Duration)
+    if ts, ok := tagMap[s.Tag]; ok {
+        ts.Seconds += int64(s.Duration)  // 累加已有标签
+    } else {
+        tagMap[s.Tag] = &model.TagSummary{Tag: s.Tag, Color: s.TagColor}
+        tagMap[s.Tag].Seconds += int64(s.Duration)  // 新建标签
+    }
+}
+```
+
+#### GetFocusSummary（第173-225行）— 历史总览 ★复杂
+
+```
+1. 查询历史总计：SUM(duration)、COUNT(*)
+2. 查询每日统计（GROUP BY date）
+3. 使用原生 SQL Rows 扫描，组装 DailyStatItem 列表
+```
+
+**重点：复杂 SQL 查询**
+```go
+database.Model(&model.StudySession{}).
+    Select("date, SUM(duration) as total_seconds, COUNT(*) as session_count").
+    Where("user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)", userID, days).
+    Group("date").
+    Order("date DESC").
+    Rows()
+```
+
+#### GetFocusHistory / CreateTag / GetTags（第231-330行）
+
+- GetFocusHistory：简单查询 + 格式转换（time.Format("15:04:05")）
+- CreateTag / GetTags：标准 CRUD，类似 todo.go
+
+**动手练习（必须写）：**
+
+```go
+// 练习1：模拟标签占比计算
+sessions := []struct{Tag string; Duration int}{
+    {"Go开发", 3600}, {"算法", 1800}, {"Go开发", 1200},
+}
+// 计算：Go开发=4800秒(66.7%)，算法=1800秒(33.3%)
+
+// 练习2：手写 GROUP BY 查询的 GORM 代码
+// 查询每个标签的总时长，按时长降序
+
+// 练习3：实现 formatDuration 函数（秒→"X小时Y分钟"）
+```
+
+**Day 10 过关标准：**
+- [ ] 能说出 focus.go 6个API的作用
+- [ ] 能解释 GetTodayFocus 的标签分组累加逻辑
+- [ ] 能写出 GROUP BY + SUM + COUNT 的 GORM 查询
+- [ ] 能解释 DATE_SUB(CURDATE(), INTERVAL ? DAY) 的作用
+
+---
+
+### Day 12（高强度）— 读 utils/ + middleware/ + session/
 
 **认证模块的三个辅助包，每个都很短。**
 
@@ -643,14 +737,14 @@ protectedHandler("")           // 拒绝
 protectedHandler("jwt_token")  // 通过
 ```
 
-**Day 10 过关标准：**
+**Day 12 过关标准：**
 - [ ] 能画出 JWT 的三段结构（Header.Payload.Signature）
 - [ ] 能解释中间件的工作流程
 - [ ] 能解释 context.WithValue 的作用
 
 ---
 
-### Day 11（高强度）— 前后端联调走查
+### Day 13（高强度）— 前后端联调走查
 
 **目标：从前端第一行代码跟踪到数据库最后一行SQL。**
 
@@ -688,14 +782,14 @@ protectedHandler("jwt_token")  // 通过
 
 **每个箭头标注：对应代码哪一行。**
 
-**Day 11 过关标准：**
+**Day 13 过关标准：**
 - [ ] 时序图覆盖全部14个步骤
 - [ ] 每个步骤能定位到具体文件和行号
 - [ ] 合上资料能口述整个过程
 
 ---
 
-### Day 12（中强度）— 第2周总结 + 补漏
+### Day 14（中强度）— 第2周总结 + 补漏
 
 **自查清单：**
 
@@ -706,6 +800,7 @@ protectedHandler("jwt_token")  // 通过
 □ ServeMux 路由机制
 □ RecordVisit 四步流程
 □ Register / Login 的步骤
+□ Focus 6个API的作用
 □ bcrypt 和 JWT 各自的作用
 □ 中间件的工作流程
 □ 每个 GORM 操作对应哪条 SQL
@@ -724,7 +819,7 @@ protectedHandler("jwt_token")  // 通过
 
 ---
 
-### Day 13（高强度）— SSH 进 MySQL 实操
+### Day 15（高强度）— SSH 进 MySQL 实操
 
 ```bash
 ssh user@1.15.224.88
@@ -750,12 +845,12 @@ SELECT id, username, role FROM users;
 SELECT username, password_hash FROM users LIMIT 1;  -- 看 bcrypt 哈希长什么样
 ```
 
-**Day 13 过关标准：**
+**Day 15 过关标准：**
 - [ ] 上面SQL全部在服务器上执行过且理解结果
 
 ---
 
-### Day 14（高强度）— GORM 与 SQL 对应
+### Day 16（高强度）— GORM 与 SQL 对应
 
 ```go
 database.Create(&newRecord)           ↔ INSERT INTO
@@ -776,13 +871,13 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 // 3. DELETE FROM visit_stats WHERE id = 1;
 ```
 
-**Day 14 过关标准：**
+**Day 16 过关标准：**
 - [ ] 每个 GORM 方法都能说出对应的 SQL
 - [ ] 练习跑通
 
 ---
 
-### Day 15（高强度）— 读其他 handler
+### Day 17（高强度）— 读其他 handler
 
 快速过 `todo.go`、`guestbook.go`、`setting.go`。模式和 `visit.go` 完全一样。
 
@@ -792,13 +887,13 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 | guestbook.go | CreateMessage / GetMessages | guestbook |
 | setting.go | GetSettings / UpdateSettings | settings |
 
-**Day 15 过关标准：**
+**Day 17 过关标准：**
 - [ ] 能说出每个 handler 的 CRUD 函数名
 - [ ] 能指出和 visit.go 的模式差异（如果有的话）
 
 ---
 
-### Day 16（高强度）— 数据库设计分析 + 动手改功能
+### Day 18（高强度）— 数据库设计分析 + 动手改功能
 
 **思考：**
 
@@ -815,13 +910,13 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 - **选项 B（中等）**：给留言板加分页数字显示
 - **选项 C（中等）**：加"今日访问数"字段
 
-**Day 16 过关标准：**
+**Day 18 过关标准：**
 - [ ] 功能改动完成并部署验证
 - [ ] 能说出改了哪些文件、每处改动的原因
 
 ---
 
-### Day 17（高强度）— 认证全链路精读
+### Day 19（高强度）— 认证全链路精读
 
 **画认证流程时序图（三个流程）：**
 
@@ -831,10 +926,70 @@ database.AutoMigrate(&Model{})        ↔ CREATE TABLE IF NOT EXISTS
 
 **获取用户：** 前端 → GET /api/auth/me(Bearer token) → AuthMiddleware验token → GetCurrentUser(从context取) → 返回
 
-**Day 17 过关标准：**
+**Day 19 过关标准：**
 - [ ] 三个流程的每个步骤能口述
 - [ ] 能解释 GetCurrentUser 不需要查数据库
 - [ ] 能说出 localStorage 和 sessionStorage 的区别
+
+---
+
+### Day 20（中强度）— 读 fronted/flappy-bird.js（Flappy Bird游戏）
+
+**纯前端游戏，理解游戏循环和Canvas绘图。**
+
+#### 文件结构概览（386行）
+
+```
+核心机制：
+├── requestAnimationFrame 游戏循环
+├── Canvas 绘图（bird, pipe, background）
+├── 物理系统：重力、跳跃速度
+├── 碰撞检测：bird与pipe的矩形碰撞
+└── 计分系统
+```
+
+**重点理解代码模式：**
+
+```javascript
+// 游戏状态机
+const GameState = { START: 0, PLAYING: 1, GAME_OVER: 2 };
+
+// 游戏循环
+function gameLoop() {
+    if (state === GameState.PLAYING) {
+        update();  // 更新位置、检测碰撞
+        draw();    // 重绘画布
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+// Canvas 绘图示例
+ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+```
+
+**动手练习：**
+
+```javascript
+// 练习1：理解碰撞检测逻辑
+function checkCollision(bird, pipe) {
+    return bird.x < pipe.x + pipe.width &&
+           bird.x + bird.width > pipe.x &&
+           bird.y < pipe.y + pipe.height &&
+           bird.y + bird.height > pipe.y;
+}
+
+// 练习2：实现简单的计时器（类似专注时间的倒计时）
+let seconds = 25 * 60;  // 25分钟
+timer = setInterval(() => {
+    seconds--;
+    if (seconds <= 0) clearInterval(timer);
+}, 1000);
+```
+
+**Day 20 过关标准：**
+- [ ] 能说出游戏循环的工作原理
+- [ ] 能理解 Canvas 的基本绘图操作
+- [ ] 能解释碰撞检测的矩形相交判断
 
 ---
 
