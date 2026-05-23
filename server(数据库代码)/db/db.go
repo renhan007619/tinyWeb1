@@ -164,7 +164,7 @@ func connectDB(dsn, host, port, name, label string) *gorm.DB {
 	}
 
 	// 配置连接池参数
-	sqlDB.SetMaxOpenConns(1)                   // 最大同时打开的连接数（防止连接数爆炸）
+	sqlDB.SetMaxOpenConns(10)                  // 最大同时打开的连接数（防止连接数爆炸）
 	sqlDB.SetMaxIdleConns(5)                   // 最大空闲连接数（保持一定数量的空闲连接复用）
 	sqlDB.SetConnMaxLifetime(30 * time.Minute) // 连接最大生存时间（防止长时间占用或过期连接）
 
