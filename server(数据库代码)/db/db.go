@@ -61,10 +61,10 @@ var testDB *gorm.DB
 // 此函数应在程序启动时（main.go 中）调用一次
 //
 // 执行步骤：
-//   1. 从 config 获取主库 DSN 连接字符串
-//   2. 建立 GORM 连接并配置连接池参数
-//   3. 测试连接是否正常
-//   4. 使用 AutoMigrate 自动创建/更新数据表
+//  1. 从 config 获取主库 DSN 连接字符串
+//  2. 建立 GORM 连接并配置连接池参数
+//  3. 测试连接是否正常
+//  4. 使用 AutoMigrate 自动创建/更新数据表
 func Initialize() {
 	mainDB = connectDB(
 		config.GetDSN(),
@@ -164,9 +164,9 @@ func connectDB(dsn, host, port, name, label string) *gorm.DB {
 	}
 
 	// 配置连接池参数
-	sqlDB.SetMaxOpenConns(10)                  // 最大同时打开的连接数（防止连接数爆炸）
+	sqlDB.SetMaxOpenConns(1)                   // 最大同时打开的连接数（防止连接数爆炸）
 	sqlDB.SetMaxIdleConns(5)                   // 最大空闲连接数（保持一定数量的空闲连接复用）
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)  // 连接最大生存时间（防止长时间占用或过期连接）
+	sqlDB.SetConnMaxLifetime(30 * time.Minute) // 连接最大生存时间（防止长时间占用或过期连接）
 
 	// 验证数据库连接是否可用（真正发起一次 TCP 连接到 MySQL）
 	if err = sqlDB.Ping(); err != nil {
@@ -203,11 +203,11 @@ func GetTestDB() *gorm.DB {
 // autoMigrateMainDB 对主库执行表结构自动迁移
 //
 // AutoMigrate 工作原理：
-//   1. 读取 Go 结构体的字段和 gorm 标签
-//   2. 检查数据库中是否存在对应的表
-//   3. 如果表不存在，自动 CREATE TABLE
-//   4. 如果表存在但缺少某些列，自动 ALTER TABLE ADD COLUMN
-//   5. 不会删除已有的列或数据，安全无侵入
+//  1. 读取 Go 结构体的字段和 gorm 标签
+//  2. 检查数据库中是否存在对应的表
+//  3. 如果表不存在，自动 CREATE TABLE
+//  4. 如果表存在但缺少某些列，自动 ALTER TABLE ADD COLUMN
+//  5. 不会删除已有的列或数据，安全无侵入
 //
 // 当前迁移的表：
 //   - visit_stats: 访问统计表（GORM 管理）
