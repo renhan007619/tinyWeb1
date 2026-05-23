@@ -104,7 +104,7 @@ export DB_PASS=your_password
 export DB_NAME=tinyweb1
 
 # ⚠️ 关键：静态文件目录必须正确指向 fronted
-export STATIC_DIR=/home/user/tinyweb1/fronted
+export STATIC_DIR=/home/user/tinyWeb1/fronted
 
 # 服务器端口
 export SERVER_PORT=8080
@@ -112,6 +112,59 @@ export SERVER_PORT=8080
 # 运行环境
 export APP_ENV=production
 ```
+
+---
+
+## 服务器部署经验教训（2026-05-23更新）
+
+### ❌ 常见错误案例
+
+| 错误现象 | 原因 | 解决方案 |
+|---------|------|---------|
+| `No such file or directory` | 路径大小写错误：`tinyweb1` vs `tinyWeb1` | Linux区分大小写，必须使用 `tinyWeb1`（W大写）|
+| `syntax error near unexpected token '('` | 目录名含括号，bash解析错误 | 路径用双引号包裹：`cd "/home/user/tinyWeb1/server(数据库代码)"` |
+| `No such file or directory: ./server.exe` | 没进入项目目录就执行命令 | 必须先 `cd` 进目录，再执行后续命令 |
+| `404 page not found` | STATIC_DIR路径错误或大小写不对 | 检查路径：`/home/user/tinyWeb1/fronted`（W大写）|
+| `address already in use` | 旧进程没杀掉，端口被占用 | 先执行 `pkill -f "server.exe"` 再启动 |
+| `go.mod file not found` | 在非项目目录执行go build | 确保在项目根目录或 `server(数据库代码)` 目录执行 |
+
+### ✅ 成功部署命令（一键执行）
+
+```bash
+cd "/home/user/tinyWeb1/server(数据库代码)" && pkill -f "server.exe" 2>/dev/null; go build -o server.exe main.go && export STATIC_DIR=/home/user/tinyWeb1/fronted && nohup ./server.exe > server.log 2>&1 & sleep 3 && tail -n 10 server.log
+```
+
+**关键点**：
+1. 路径用**双引号**包裹（处理括号）
+2. `tinyWeb1` **W大写**（Linux区分大小写）
+3. 先`cd`进目录，再执行后续命令
+4. `2>/dev/null` 防止pkill报错中断
+5. `sleep 3` 等待启动完成再看日志
+
+### 🔍 验证部署成功
+
+```bash
+# 查看进程是否运行
+ps aux | grep server.exe
+
+# 查看日志确认启动
+tail -n 20 server.log
+
+# 查看静态文件路径是否正确（日志中应有"📂 静态文件:"）
+grep "静态文件" server.log
+```
+
+### 📋 部署检查清单
+
+- [ ] 代码已push到GitHub
+- [ ] 服务器已git pull最新代码
+- [ ] 路径大小写正确（tinyWeb1，不是tinyweb1）
+- [ ] 已进入项目目录（带括号的路径用引号）
+- [ ] STATIC_DIR设置正确（/home/user/tinyWeb1/fronted）
+- [ ] 旧进程已杀掉（pkill）
+- [ ] 编译成功（server.exe生成）
+- [ ] 后台启动成功（nohup）
+- [ ] 浏览器能正常访问页面
 
 ## LeetCode刷题策略（面试官培养模式）
 
