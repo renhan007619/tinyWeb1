@@ -1,5 +1,7 @@
 // Package handler 提供备忘录（Todo）相关的 HTTP API handlers
 // =============================================
+// 作者：renhan007619
+// 最后更新：2026-05-25
 // 作用：
 //   实现 RESTful API 接口，处理前端发来的备忘录 CRUD 请求。
 //   包括：新增、查询、更新、删除待办任务，以及历史归档功能。
@@ -54,7 +56,8 @@ func getTodoUserID(r *http.Request) (uint, bool) {
 //   - category: 必填，任务分类（life/study/important）
 //
 // 返回示例：
-//   {"code":0,"message":"success","data":[{"id":1,"category":"life","text":"买菜","done":false,...}]}
+//
+//	{"code":0,"message":"success","data":[{"id":1,"category":"life","text":"买菜","done":false,...}]}
 func GetTodos(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getTodoUserID(r)
 	if !ok {
@@ -91,7 +94,8 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 
 // CreateTodo 创建一条新的待办任务
 // Request Body (JSON)：
-//   { "category": "life", "text": "买菜" }
+//
+//	{ "category": "life", "text": "买菜" }
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getTodoUserID(r)
 	if !ok {
@@ -144,7 +148,8 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 // UpdateTodo 更新指定的待办任务
 // 支持部分更新：只更新请求中提供的字段
 // Request Body (JSON)：
-//   { "text": "新内容" }  或  { "done": true }  或两者都有
+//
+//	{ "text": "新内容" }  或  { "done": true }  或两者都有
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getTodoUserID(r)
 	if !ok {
