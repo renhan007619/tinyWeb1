@@ -2661,11 +2661,17 @@
         .focus-ctrl-btn.reset-btn {
             background: rgba(255,255,255,0.08);
             color: var(--text-sub);
+            transition: all 0.25s ease, opacity 0.25s ease;
         }
-        .focus-ctrl-btn.reset-btn:hover {
+        .focus-ctrl-btn.reset-btn:hover:not(:disabled) {
             background: rgba(255,77,77,0.15);
             color: #ff4d4d;
             transform: scale(1.05);
+        }
+        .focus-ctrl-btn.reset-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
         }
         .focus-ctrl-btn:active { transform: scale(0.95); }
         .focus-ctrl-btn:disabled {
@@ -6117,7 +6123,8 @@
                 startBtn.className = 'focus-ctrl-btn pause-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
                 startBtn.title = '暂停';
-                document.getElementById('focusResetBtn').disabled = false;
+                // 计时时禁用重置按钮，防止误触
+                document.getElementById('focusResetBtn').disabled = true;
                 document.getElementById('focusEntryBtn').classList.add('running');
 
                 // 隐藏完成提示
@@ -6146,6 +6153,8 @@
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 startBtn.title = '继续';
+                // 暂停后启用重置按钮
+                document.getElementById('focusResetBtn').disabled = false;
             },
 
             // ---- 重置 ----
