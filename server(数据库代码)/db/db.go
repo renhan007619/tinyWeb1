@@ -219,6 +219,8 @@ func autoMigrateMainDB(db *gorm.DB) {
 		&model.User{},         // 用户表（注册登录功能新增）
 		&model.StudySession{}, // 专注记录表（专注时间功能新增）
 		&model.StudyTag{},     // 专注标签表（专注时间功能新增）
+		&model.GalleryImage{}, // 图库图片表（Day 1 新增）
+		&model.GalleryAlbum{}, // 图库专辑表（Day 1 新增）
 	)
 	if err != nil {
 		log.Fatalf("❌ 数据库自动迁移失败: %v", err)

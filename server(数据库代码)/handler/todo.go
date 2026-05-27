@@ -110,6 +110,7 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Text = strings.TrimSpace(req.Text)
+	req.Text = stripHTMLTags(req.Text)
 	if req.Text == "" {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "任务内容不能为空"))
 		return
@@ -186,6 +187,7 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	updates := make(map[string]interface{})
 	if req.Text != nil {
 		trimmed := strings.TrimSpace(*req.Text)
+		trimmed = stripHTMLTags(trimmed)
 		if trimmed == "" {
 			sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "任务内容不能为空"))
 			return

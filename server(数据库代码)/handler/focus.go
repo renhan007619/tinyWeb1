@@ -87,11 +87,13 @@ func CreateFocusSession(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "专注时长最多4小时"))
 		return
 	}
-
 	// 设置默认标签
 	if req.Tag == "" {
 		req.Tag = "未分类"
+	} else {
+		req.Tag = stripHTMLTags(req.Tag)
 	}
+
 	if req.TagColor == "" {
 		req.TagColor = "#6C5CE7"
 	}
@@ -332,6 +334,7 @@ func CreateTag(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "标签名不能为空"))
 		return
 	}
+	req.Name = stripHTMLTags(req.Name)
 	if len(req.Name) > 50 {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "标签名不能超过50个字符"))
 		return

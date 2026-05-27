@@ -99,6 +99,12 @@ func main() {
 	}
 	fmt.Println("✅ flappy_bird_scores 表就绪")
 
+	// ---- Day11 图库功能：自动创建 gallery_images 和 gallery_albums 表 ----
+	if err := db.GetDB().AutoMigrate(&model.GalleryImage{}, &model.GalleryAlbum{}); err != nil {
+		log.Fatal("❌ 图库表自动迁移失败:", err)
+	}
+	fmt.Println("✅ gallery_images + gallery_albums 表就绪")
+
 	// ============================================================
 	// 步骤 3: 初始化测试数据库（tinyweb1_test）
 	// ============================================================
@@ -428,6 +434,66 @@ func startServer() {
 			sendMethodNotAllowed(w)
 		}
 	}))
+
+	// ---- Day11 图库接口（需登录认证，用户数据隔离）----
+	// 上传图片
+	mux.HandleFunc("/api/gallery/upload", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.UploadImage(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 获取图片列表
+	mux.HandleFunc("/api/gallery/images", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetImageList(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 按日期分组获取
+	mux.HandleFunc("/api/gallery/images/by-date", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetImagesByDate(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 图片单条操作（更新/删除）
+	mux.HandleFunc("/api/gallery/images/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			handler.UpdateImage(w, r)
+		case http.MethodDelete:
+			handler.DeleteImage(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 专辑列表/创建
+	mux.HandleFunc("/api/gallery/albums", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handler.GetAlbumList(w, r)
+		case http.MethodPost:
+			handler.CreateAlbum(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 专辑操作（更新/删除）
+	mux.HandleFunc("/api/gallery/albums/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			handler.UpdateAlbum(w, r)
+		case http.MethodDelete:
+			handler.DeleteAlbum(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	}))
+
 	mux.HandleFunc("/api/admin/pages", middleware.AuthMiddleware(middleware.AdminMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
