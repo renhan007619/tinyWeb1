@@ -391,6 +391,13 @@ func startServer() {
 			sendMethodNotAllowed(w)
 		}
 	}))
+	mux.HandleFunc("/api/focus/average", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetAverageFocus(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
 
 	// ---- HTML 页面管理接口（仅管理员可访问）----
 	database := db.GetDB()

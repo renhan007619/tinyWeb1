@@ -2661,11 +2661,17 @@
         .focus-ctrl-btn.reset-btn {
             background: rgba(255,255,255,0.08);
             color: var(--text-sub);
+            transition: all 0.25s ease, opacity 0.25s ease;
         }
-        .focus-ctrl-btn.reset-btn:hover {
+        .focus-ctrl-btn.reset-btn:hover:not(:disabled) {
             background: rgba(255,77,77,0.15);
             color: #ff4d4d;
             transform: scale(1.05);
+        }
+        .focus-ctrl-btn.reset-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
         }
         .focus-ctrl-btn:active { transform: scale(0.95); }
         .focus-ctrl-btn:disabled {
@@ -4109,7 +4115,12 @@
         <!-- 条形图：近7天趋势（支持左右切换查看历史） -->
         <div class="focus-report-section">
             <div class="focus-report-label" style="display:flex;justify-content:space-between;align-items:center;">
-                <span id="focusBarChartTitle">近7天趋势</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="focusBarChartTitle">近7天趋势</span>
+                    <button id="focusAvgToggle" title="切换平均线" style="width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;transition:opacity 0.2s;opacity:0.5;">
+                        <i class="fa-solid fa-minus" id="focusAvgEyeIcon"></i>
+                    </button>
+                </div>
                 <div class="focus-chart-nav" style="display:flex;align-items:center;gap:6px;">
                     <button class="focus-chart-nav-btn" id="focusChartPrev" title="上一个七天 (←)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--avatar-border);background:var(--social-bg);color:var(--text-sub);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;transition:all 0.2s;">
                         <i class="fa-solid fa-chevron-left"></i>
@@ -4122,6 +4133,13 @@
             </div>
             <div class="focus-chart-wrap">
                 <canvas id="focusBarChart" width="320" height="160"></canvas>
+            </div>
+            <!-- 数字显示开关按钮 -->
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:6px;">
+                <button id="focusNumToggle" class="focus-num-btn" style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;border:1px solid var(--avatar-border);background:transparent;color:var(--text-sub);font-size:0.68rem;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans SC',sans-serif;">
+                    <i class="fa-solid fa-eye" id="focusNumEyeIcon" style="font-size:0.65rem;"></i>
+                    <span>数字</span>
+                </button>
             </div>
             <div class="focus-chart-hint" style="font-size:0.65rem;color:var(--text-dim);text-align:center;margin-top:6px;">
                 按 <kbd style="font-family:monospace;background:var(--social-bg);padding:1px 4px;border-radius:3px;">←</kbd> <kbd style="font-family:monospace;background:var(--social-bg);padding:1px 4px;border-radius:3px;">→</kbd> 方向键切换周次（查看所有历史记录）
@@ -5791,6 +5809,33 @@
         // ============================================================
         // 专注计时器模块（FocusTimer）
         // ============================================================
+        
+        // 热力阶梯色功能：紫色系配色，视觉顺眼有区分度
+        // 浅紫 → 中紫 → 深紫 → 紫蓝 → 发光紫（超强）
+        function getFocusHeatColor(minutes, maxMinutes) {
+            // 紫色系阶梯（柔和、顺眼、有区分度）
+            // 0-60分钟：浅紫 #a29bfe（起步）
+            // 60-120分钟：中紫 #6c5ce7（常规）
+            // 120-180分钟：深紫 #4834d4（高效）
+            // 180+分钟：紫蓝 #3742fa（深度）
+            // 超高时长：发光紫 #ff6b9d（超强，带发光效果）
+            
+            var ratio = maxMinutes > 0 ? minutes / maxMinutes : minutes / 180;
+            ratio = Math.min(1, ratio);
+            
+            // 直接返回对应的颜色（固定阶梯，不渐变）
+            if (ratio <= 0.33) {
+                return '#a29bfe';  // 浅紫 - 起步
+            } else if (ratio <= 0.55) {
+                return '#6c5ce7';  // 中紫 - 常规
+            } else if (ratio <= 0.75) {
+                return '#4834d4';  // 深紫 - 高效
+            } else if (ratio <= 0.9) {
+                return '#3742fa';  // 紫蓝 - 深度
+            } else {
+                return '#ff6b9d';  // 发光紫 - 超强
+            }
+        }
         // 设计思路：类似 AuthManager 的对象模式
         // 状态机：idle → running → paused → idle
         // 方法：init / selectTag / setDuration / start / pause / reset / tick / finish
@@ -6078,7 +6123,8 @@
                 startBtn.className = 'focus-ctrl-btn pause-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
                 startBtn.title = '暂停';
-                document.getElementById('focusResetBtn').disabled = false;
+                // 计时时禁用重置按钮，防止误触
+                document.getElementById('focusResetBtn').disabled = true;
                 document.getElementById('focusEntryBtn').classList.add('running');
 
                 // 隐藏完成提示
@@ -6107,6 +6153,8 @@
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 startBtn.title = '继续';
+                // 暂停后启用重置按钮
+                document.getElementById('focusResetBtn').disabled = false;
             },
 
             // ---- 重置 ----
@@ -6638,6 +6686,15 @@
             // 最早有记录的日期（从后端获取）
             _earliestDate: null,
 
+            // 平均值虚线显示开关（默认显示）
+            _showAvgLine: true,
+            
+            // 数字显示开关（默认显示）
+            _showNumbers: true,
+
+            // 当前条形图数据（用于计算平均值）
+            _barChartData: [],
+
             // ---- 切换报告面板 ----
             toggleReport: function() {
                 var bubble = document.getElementById('focusReportBubble');
@@ -6940,31 +6997,51 @@
                     '<span class="focus-chart-legend-item" style="color:var(--text-dim)">暂无专注记录</span>';
             },
 
-            // ---- 绘制水平条形图（近7天）----
+            // ---- 计算指定周偏移的周一到周日日期 ----
+            // weekOffset: 0=本周, -7=上周, -14=上上周, 以此类推
+            _getWeekDates: function(weekOffset) {
+                var today = new Date();
+                var currentDayOfWeek = today.getDay(); // 0=周日, 1=周一, ..., 6=周六
+                
+                // 调整为周一为第一天：计算到本周一的天数偏移
+                // 如果今天是周日(0)，则本周一是6天前；否则是(currentDayOfWeek-1)天前
+                var daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+                
+                // 本周一的日期
+                var monday = new Date(today);
+                monday.setDate(today.getDate() - daysToMonday);
+                
+                // 应用周偏移（每次偏移7天）
+                monday.setDate(monday.getDate() + weekOffset);
+                
+                // 生成周一到周日的7个日期
+                var weekDates = [];
+                for (var i = 0; i < 7; i++) {
+                    var d = new Date(monday);
+                    d.setDate(monday.getDate() + i);
+                    weekDates.push(d);
+                }
+                
+                return weekDates;
+            },
+
+            // ---- 绘制水平条形图（按周显示：周一到周日）----
             drawBarChart: function() {
                 var self = this;
-                // 根据偏移量计算要请求的日期范围
-                var endOffset = this._chartWeekOffset; // 结束日期偏移（0=今天）
-                var startOffset = endOffset - 6;        // 开始日期偏移（往前6天）
-
-                // 构建日期范围参数
-                var endDate = new Date();
-                endDate.setDate(endDate.getDate() + endOffset);
-                var startDate = new Date();
-                startDate.setDate(startDate.getDate() + startOffset);
-
-                var startDateStr = startDate.getFullYear() + '-' +
-                    String(startDate.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(startDate.getDate()).padStart(2, '0');
-                var endDateStr = endDate.getFullYear() + '-' +
-                    String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(endDate.getDate()).padStart(2, '0');
+                
+                // 获取当前查看的周日期（周一到周日）
+                var weekDates = this._getWeekDates(this._chartWeekOffset);
+                
+                // 构建日期范围参数（周一到周日）
+                var startDateStr = weekDates[0].getFullYear() + '-' +
+                    String(weekDates[0].getMonth() + 1).padStart(2, '0') + '-' +
+                    String(weekDates[0].getDate()).padStart(2, '0');
+                var endDateStr = weekDates[6].getFullYear() + '-' +
+                    String(weekDates[6].getMonth() + 1).padStart(2, '0') + '-' +
+                    String(weekDates[6].getDate()).padStart(2, '0');
 
                 // 使用带日期范围的API
-                var apiUrl = this.API_BASE + '/api/focus/summary?days=7';
-                if (this._chartWeekOffset !== 0) {
-                    apiUrl = this.API_BASE + '/api/focus/summary?start=' + startDateStr + '&end=' + endDateStr;
-                }
+                var apiUrl = this.API_BASE + '/api/focus/summary?start=' + startDateStr + '&end=' + endDateStr;
 
                 AuthManager.fetchWithAuth(apiUrl)
                     .then(function(r) { return r.json(); })
@@ -6978,9 +7055,10 @@
                         // 构建日期标签和数据（根据当前周次偏移）
                         var dayLabels = [];
                         var dayData = [];
-                        for (var i = 6; i >= 0; i--) {
-                            var d = new Date();
-                            d.setDate(d.getDate() + endOffset - i);
+                        
+                        // 使用已计算的 weekDates 生成标签和数据（周一到周日）
+                        for (var i = 0; i < 7; i++) {
+                            var d = weekDates[i];
                             var shortLabel = (d.getMonth() + 1) + '/' + d.getDate();
                             dayLabels.push(shortLabel);
                             dayData.push(0); // 默认0，后面再填充实际数据
@@ -6996,10 +7074,9 @@
                             totalSeconds = res.data.total_seconds || 0;
                             totalSessions = res.data.total_sessions || 0;
 
-                            // 填充实际数据
+                            // 填充实际数据（匹配周一到周日的日期）
                             for (var j = 0; j < 7; j++) {
-                                var d = new Date();
-                                d.setDate(d.getDate() + endOffset - (6 - j));
+                                var d = weekDates[j];
                                 var year = d.getFullYear();
                                 var month = String(d.getMonth() + 1).padStart(2, '0');
                                 var day = String(d.getDate()).padStart(2, '0');
@@ -7016,19 +7093,94 @@
                             }
                         }
 
-                        // 只有本周才更新累计成就显示
-                        if (self._chartWeekOffset === 0) {
-                            var hours = (totalSeconds / 3600).toFixed(1);
-                            if (hours.endsWith('.0')) hours = hours.slice(0, -2);
-                            document.getElementById('focusTotalTime').textContent = hours + '小时';
-                            document.getElementById('focusTotalSessions').textContent = totalSessions;
-                        }
+                        // 保存当前数据用于平均值计算
+                        self._barChartData = dayData;
+
+            // 累计成就单独加载（不按周次）
+                        self.loadTotalAchievement();
 
                         var isDark = !document.documentElement.classList.contains('light');
                         var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
                         var textColor = isDark ? '#aaa' : '#888';
+                        var avgLineColor = 'rgba(108, 92, 231, 0.4)';  // 淡紫色虚线
 
+            // 计算平均值（当前周按已过天数计算，历史周按7天计算）
+                        var sum, avgDivisor, avg;
+                        
+                        if (self._chartWeekOffset === 0) {
+                            // 当前周：只计算已过天数的数据（不包括今天）
+                            var today = new Date();
+                            var currentDayOfWeek = today.getDay();
+                            // 已过天数（周一到昨天）：周四是3天（周一、周二、周三）
+                            var daysPassed = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+                            avgDivisor = Math.max(1, daysPassed);
+                            
+                            // 只取前 daysPassed 天的数据（排除今天）
+                            var passedDaysData = dayData.slice(0, daysPassed);
+                            sum = passedDaysData.reduce(function(a, b) { return a + b; }, 0);
+                            avg = sum / avgDivisor;
+                        } else {
+                            // 历史周：7天数据全部参与计算
+                            avgDivisor = 7;
+                            sum = dayData.reduce(function(a, b) { return a + b; }, 0);
+                            avg = sum / avgDivisor;
+                        }
+
+                        // 统一紫色（不再使用热力阶梯色）
+                        var barColor = '#6c5ce7';
+                        
                         var ctx = document.getElementById('focusBarChart').getContext('2d');
+                        
+                        // 创建自定义插件：在条形上方显示数字 + 平均值虚线
+                        var numberLabelPlugin = {
+                            id: 'numberLabels',
+                            afterDatasetsDraw: function(chart) {
+                                var ctx2 = chart.ctx;
+                                
+                                // 只有开启数字显示时才绘制
+                                if (self._showNumbers) {
+                                    chart.data.datasets.forEach(function(dataset, i) {
+                                        var meta = chart.getDatasetMeta(i);
+                                        meta.data.forEach(function(bar, index) {
+                                            var value = dataset.data[index];
+                                            if (value > 0) {
+                                                ctx2.save();
+                                                ctx2.fillStyle = textColor;
+                                                ctx2.font = 'bold 10px "Noto Sans SC", sans-serif';
+                                                ctx2.textAlign = 'center';
+                                                ctx2.textBaseline = 'bottom';
+                                                ctx2.fillText(value, bar.x, bar.y - 2);
+                                                ctx2.restore();
+                                            }
+                                        });
+                                    });
+                                }
+
+                                // 绘制平均值虚线（如果开启）
+                                if (self._showAvgLine && avg > 0) {
+                                    var yScale = chart.scales.y;
+                                    var yPos = yScale.getPixelForValue(avg);
+                                    
+                                    ctx2.save();
+                                    ctx2.beginPath();
+                                    ctx2.setLineDash([5, 5]);
+                                    ctx2.strokeStyle = avgLineColor;
+                                    ctx2.lineWidth = 1.5;
+                                    ctx2.moveTo(chart.scales.x.left, yPos);
+                                    ctx2.lineTo(chart.scales.x.right, yPos);
+                                    ctx2.stroke();
+                                    
+                                    // 绘制"平均"文字标签
+                                    ctx2.fillStyle = avgLineColor;
+                                    ctx2.font = '10px "Noto Sans SC", sans-serif';
+                                    ctx2.textAlign = 'left';
+                                    ctx2.textBaseline = 'bottom';
+                                    ctx2.fillText('平均 ' + avg.toFixed(1) + '分', chart.scales.x.left + 4, yPos - 3);
+                                    ctx2.restore();
+                                }
+                            }
+                        };
+
                         self._barChart = new Chart(ctx, {
                             type: 'bar',
                             data: {
@@ -7036,9 +7188,8 @@
                                 datasets: [{
                                     label: '专注(分钟)',
                                     data: dayData,
-                                    backgroundColor: 'rgba(108, 92, 231, 0.6)',
-                                    borderColor: '#6c5ce7',
-                                    borderWidth: 1,
+                                    backgroundColor: barColor,
+                                    borderWidth: 0,
                                     borderRadius: 4,
                                     barPercentage: 0.6
                                 }]
@@ -7067,14 +7218,64 @@
                                         }
                                     }
                                 }
-                            }
+                            },
+                            plugins: [numberLabelPlugin]
                         });
+
+                        // 绑定平均值和数字开关按钮事件（只绑定一次）
+                        self._bindToggleEvents();
                     })
                     .catch(function(err) {
                         console.warn('[FocusTimer] 加载条形图数据失败:', err);
                         // 即使出错也渲染空图表
                         self._drawEmptyBarChart();
                     });
+            },
+
+            // ---- 绑定开关按钮事件（平均线 + 数字显示）----
+            _toggleEventsBound: false,
+            _bindToggleEvents: function() {
+                if (this._toggleEventsBound) return;
+                var self = this;
+                
+                // 平均线开关（标题旁的小按钮）
+                document.getElementById('focusAvgToggle').addEventListener('click', function() {
+                    self._showAvgLine = !self._showAvgLine;
+                    var eyeIcon = document.getElementById('focusAvgEyeIcon');
+                    var btn = document.getElementById('focusAvgToggle');
+                    
+                    if (self._showAvgLine) {
+                        eyeIcon.className = 'fa-solid fa-minus';
+                        btn.style.opacity = '0.5';
+                    } else {
+                        eyeIcon.className = 'fa-solid fa-minus';
+                        btn.style.opacity = '0.25';
+                    }
+                    
+                    if (self._barChart) {
+                        self._barChart.update();
+                    }
+                });
+                
+                // 数字显示开关
+                document.getElementById('focusNumToggle').addEventListener('click', function() {
+                    self._showNumbers = !self._showNumbers;
+                    var eyeIcon = document.getElementById('focusNumEyeIcon');
+                    var btn = document.getElementById('focusNumToggle');
+                    
+                    if (self._showNumbers) {
+                        eyeIcon.className = 'fa-solid fa-eye';
+                        btn.style.opacity = '1';
+                    } else {
+                        eyeIcon.className = 'fa-solid fa-eye-slash';
+                        btn.style.opacity = '0.5';
+                    }
+                    
+                    // 重绘图表
+                    self.drawBarChart();
+                });
+                
+                this._toggleEventsBound = true;
             },
 
             // ---- 无数据时绘制空条形图 ----
@@ -7130,6 +7331,33 @@
                         }
                     }
                 });
+            },
+
+            // ---- 加载累计成就（全部历史数据）----
+            loadTotalAchievement: function() {
+                var self = this;
+                // 使用不带日期范围的API获取全部历史总计
+                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/summary')
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.code === 0 && res.data) {
+                            var totalSeconds = res.data.total_seconds || 0;
+                            var totalSessions = res.data.total_sessions || 0;
+                            
+                            // 格式化为小时（保留1位小数）
+                            var hours = (totalSeconds / 3600).toFixed(1);
+                            // 去掉末尾的.0（如10.0 → 10）
+                            if (hours.endsWith('.0')) {
+                                hours = hours.slice(0, -2);
+                            }
+                            
+                            document.getElementById('focusTotalTime').textContent = hours + '小时';
+                            document.getElementById('focusTotalSessions').textContent = totalSessions;
+                        }
+                    })
+                    .catch(function(err) {
+                        console.warn('[FocusTimer] 加载累计成就失败:', err);
+                    });
             },
 
             // ---- 加载今日历史记录列表 ----

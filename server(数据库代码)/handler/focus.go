@@ -65,10 +65,12 @@ func formatDuration(seconds int64) string {
 
 // CreateFocusSession 创建一条新的专注记录
 // Request Body (JSON)：
-//   { "duration": 1500, "tag": "Go语言开发", "tag_color": "#FF6B6B" }
+//
+//	{ "duration": 1500, "tag": "Go语言开发", "tag_color": "#FF6B6B" }
 //
 // 成功响应：
-//   {"code":0,"message":"success","data":{...}}
+//
+//	{"code":0,"message":"success","data":{...}}
 func CreateFocusSession(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateFocusSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -176,6 +178,7 @@ func GetTodayFocus(w http.ResponseWriter, r *http.Request) {
 //   - days: 查询最近多少天的统计（默认30天）
 //   - start: 开始日期（YYYY-MM-DD），与end配合使用
 //   - end: 结束日期（YYYY-MM-DD），与start配合使用
+//
 // 注意：如果提供了start和end，则days参数被忽略
 func GetFocusSummary(w http.ResponseWriter, r *http.Request) {
 	database := db.GetDB()
@@ -188,7 +191,7 @@ func GetFocusSummary(w http.ResponseWriter, r *http.Request) {
 	// 历史总计（如果是日期范围，则只统计该范围内的总计）
 	var totalSeconds int64
 	var totalSessions int64
-	
+
 	if useDateRange {
 		// 验证日期格式
 		if _, err := time.Parse("2006-01-02", startDate); err != nil {
@@ -199,7 +202,7 @@ func GetFocusSummary(w http.ResponseWriter, r *http.Request) {
 			sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "结束日期格式错误，请使用YYYY-MM-DD格式"))
 			return
 		}
-		
+
 		// 查询指定日期范围内的总计
 		database.Model(&model.StudySession{}).
 			Where("user_id = ? AND date >= ? AND date <= ?", getUserID(r), startDate, endDate).
@@ -315,7 +318,8 @@ func GetFocusHistory(w http.ResponseWriter, r *http.Request) {
 
 // CreateTag 创建一个自定义专注标签
 // Request Body (JSON)：
-//   { "name": "Go语言开发", "color": "#FF6B6B" }
+//
+//	{ "name": "Go语言开发", "color": "#FF6B6B" }
 func CreateTag(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateTagRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -371,6 +375,63 @@ func GetTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendJSON(w, http.StatusOK, model.SuccessResponse(tags))
+}
+
+// ============================================================
+// GET /api/focus/average - 获取用户平均每日专注时间
+// ============================================================
+
+// GetAverageFocus 获取用户的平均每日专注时间（分钟）
+// 用于前端绘制平均线参考
+func GetAverageFocus(w http.ResponseWriter, r *http.Request) {
+	database := db.GetDB()
+	userID := getUserID(r)
+
+	// 查询用户所有专注记录的总秒数和总天数
+	var totalSeconds int64
+	var totalDays int64
+
+	database.Model(&model.StudySession{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(duration), 0)").
+		Scan(&totalSeconds)
+
+	// 查询有多少天有专注记录（去重统计）
+	database.Model(&model.StudySession{}).
+		Where("user_id = ?", userID).
+		Distinct("date").
+		Count(&totalDays)
+
+	// 计算平均值（分钟）
+	var avgMinutes float64
+	if totalDays > 0 {
+		avgMinutes = float64(totalSeconds) / float64(totalDays) / 60.0
+	} else {
+		avgMinutes = 0
+	}
+
+	// 格式化显示
+	var avgFormatted string
+	if avgMinutes >= 60 {
+		hours := int(avgMinutes / 60)
+		mins := int(avgMinutes) % 60
+		if mins > 0 {
+			avgFormatted = fmt.Sprintf("%d小时%d分钟", hours, mins)
+		} else {
+			avgFormatted = fmt.Sprintf("%d小时", hours)
+		}
+	} else {
+		avgFormatted = fmt.Sprintf("%d分钟", int(avgMinutes))
+	}
+
+	response := map[string]interface{}{
+		"avg_minutes":   int(avgMinutes),
+		"avg_formatted": avgFormatted,
+		"total_days":    totalDays,
+		"total_seconds": totalSeconds,
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(response))
 }
 
 // ============================================================
