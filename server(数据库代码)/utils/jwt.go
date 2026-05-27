@@ -20,22 +20,33 @@ package utils
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JwtSecretKey 是签名密钥，生产环境应该从环境变量读取
+// JwtSecretKey 是签名密钥，从环境变量读取
 // 注意：这个密钥必须保密，泄露后攻击者可以伪造任意 token
-var JwtSecretKey = []byte("tinyweb1-secret-key-2026")
+// 开发环境默认使用 dev-secret，生产环境必须设置 JWT_SECRET 环境变量
+var JwtSecretKey []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		// 开发环境默认值，生产环境必须设置环境变量
+		secret = "dev-secret-key-do-not-use-in-production"
+	}
+	JwtSecretKey = []byte(secret)
+}
 
 // CustomClaims 自定义 JWT 载荷（Payload）
 // 存储我们需要从 token 中提取的用户信息
 type CustomClaims struct {
-	UserID   uint   `json:"user_id"`   // 用户 ID
-	Username string `json:"username"`  // 用户名
-	Role     string `json:"role"`      // 用户角色：admin / user
-	jwt.RegisteredClaims               // JWT 标准声明（包含 exp、iat 等）
+	UserID               uint   `json:"user_id"`  // 用户 ID
+	Username             string `json:"username"` // 用户名
+	Role                 string `json:"role"`     // 用户角色：admin / user
+	jwt.RegisteredClaims        // JWT 标准声明（包含 exp、iat 等）
 }
 
 // GenerateToken 生成 JWT token
@@ -77,9 +88,9 @@ func GenerateToken(userID uint, username, role string) (string, error) {
 // 返回：自定义载荷（包含用户信息）, 错误信息
 //
 // 验证流程：
-//   1. 检查签名是否正确（防止篡改）
-//   2. 检查是否过期
-//   3. 解析出用户信息
+//  1. 检查签名是否正确（防止篡改）
+//  2. 检查是否过期
+//  3. 解析出用户信息
 func ValidateToken(tokenString string) (*CustomClaims, error) {
 	// 解析 token，同时验证签名
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
