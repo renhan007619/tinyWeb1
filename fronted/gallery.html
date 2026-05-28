@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图库 - 学习笔记相册</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
+    <style>
+        :root {
+            --bg-cover: rgba(0, 0, 0, 0.4);
+            --card-bg: rgb(20 20 30 / 60%);
+            --card-hover-bg: rgb(30 30 45 / 65%);
+            --text-main: #c8c0b0;
+            --text-sub: rgba(200, 192, 176, 0.55);
+            --text-dim: rgba(200, 192, 176, 0.35);
+            --accent: #e8a86d;
+            --accent-glow: rgba(232, 168, 109, 0.25);
+            --radius: 6px;
+            --divider-bg: rgba(255,255,255,0.06);
+        }
+
+        html.light {
+            --bg-cover: rgba(225, 215, 195, 0.7);
+            --card-bg: rgb(240 232 218 / 60%);
+            --card-hover-bg: rgb(240 232 218 / 72%);
+            --text-main: #3b3226;
+            --text-sub: rgba(59, 50, 38, 0.6);
+            --text-dim: rgba(59, 50, 38, 0.38);
+            --accent: #b87333;
+            --accent-glow: rgba(184, 115, 51, 0.18);
+            --divider-bg: rgba(80, 60, 30, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            color: var(--text-main);
+            background: #0f2027;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-all {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .bg-all img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(0px) brightness(0.55) saturate(0.8) sepia(0.2);
+            transform: scale(1.05);
+        }
+
+        .bg-cover {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, var(--bg-cover) 100%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* 头部导航 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--divider-bg);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .header h1 i {
+            color: var(--accent);
+        }
+
+        .nav-back {
+            color: var(--text-sub);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .nav-back:hover {
+            color: var(--accent);
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--divider-bg);
+            border-radius: var(--radius);
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: var(--card-hover-bg);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: rgba(232, 168, 109, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-progress {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .upload-progress.show {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--divider-bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* 专辑栏 */
+        .albums-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .albums-list {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .album-item {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .album-item:hover, .album-item.active {
+            background: var(--card-hover-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .album-item.active {
+            border: 1px solid var(--accent);
+        }
+
+        .album-add {
+            border: 2px dashed var(--divider-bg);
+            background: transparent;
+        }
+
+        .album-add:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* 日期分组 */
+        .date-group {
+            margin-bottom: 2rem;
+        }
+
+        .date-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--divider-bg);
+        }
+
+        .date-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .date-count {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* 图片网格 */
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .image-item {
+            position: relative;
+            aspect-ratio: 1;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .image-item:hover {
+            transform: scale(1.02);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            opacity: 0;
+            transition: opacity 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1rem;
+        }
+
+        .image-item:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .image-desc {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .image-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .image-btn:hover {
+            background: var(--accent);
+        }
+
+        .image-btn.delete:hover {
+            background: #ff4d4d;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* 加载更多 */
+        .load-more {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .load-more button {
+            padding: 0.8rem 2rem;
+            border: 1px solid var(--divider-bg);
+            background: var(--card-bg);
+            color: var(--text-main);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .load-more button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* 图片预览弹窗 */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .preview-modal.show {
+            display: flex;
+        }
+
+        .preview-content {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+
+        .preview-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: var(--radius);
+        }
+
+        .preview-close {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preview-close:hover {
+            background: rgba(255,77,77,0.8);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .images-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 0.5rem;
+            }
+        }
+
+        /* 主题切换 */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1.5px solid var(--divider-bg);
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        /* Toast 提示 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--accent);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 10001;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-all">
+        <img src="background7.webp" alt="" onerror="this.classList.add('error')">
+        <div class="bg-cover"></div>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1><i class="fa-solid fa-images"></i> 学习笔记图库</h1>
+            <a href="index.html" class="nav-back">
+                <i class="fa-solid fa-arrow-left"></i> 返回首页
+            </a>
+        </header>
+
+        <!-- 上传区域 -->
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <div class="upload-text">点击或拖拽上传截图</div>
+                <div class="upload-hint">支持 JPG、PNG、GIF，单张最大 50MB</div>
+            </div>
+            <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/gif,image/webp">
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 专辑列表 -->
+        <section class="albums-section">
+            <div class="section-title"><i class="fa-solid fa-folder-open"></i> 专辑</div>
+            <div class="albums-list" id="albumsList">
+                <div class="album-item active" data-album="all">
+                    <i class="fa-solid fa-images"></i> 全部
+                </div>
+                <div class="album-item album-add" id="addAlbumBtn">
+                    <i class="fa-solid fa-plus"></i> 新建专辑
+                </div>
+            </div>
+        </section>
+
+        <!-- 图片列表 -->
+        <div id="galleryContent">
+            <div class="empty-state">
+                <i class="fa-regular fa-images"></i>
+                <p>暂无图片，上传第一张学习截图吧~</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片预览 -->
+    <div class="preview-modal" id="previewModal">
+        <button class="preview-close" id="previewClose">&times;</button>
+        <div class="preview-content">
+            <img id="previewImage" src="" alt="">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== 配置 ====================
+        const API_BASE = '';
+        let currentAlbum = 'all';
+        let albums = [];
+        let imagesByDate = {};
+
+        // ==================== 主题切换 ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        
+        // 加载保存的主题
+        const savedTheme = localStorage.getItem('gallery_theme') || 'dark';
+        if (savedTheme === 'light') {
+            html.classList.add('light');
+            themeToggle.textContent = '☀️';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = html.classList.toggle('light');
+            themeToggle.textContent = isLight ? '☀️' : '🌙';
+            localStorage.setItem('gallery_theme', isLight ? 'light' : 'dark');
+        });
+
+        // ==================== 上传功能 ====================
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length) uploadFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) uploadFiles(e.target.files);
+        });
+
+        async function uploadFiles(files) {
+            const formData = new FormData();
+            for (let file of files) {
+                if (file.size > 50 * 1024 * 1024) {
+                    showToast(`文件 ${file.name} 超过50MB`);
+                    continue;
+                }
+                formData.append('files', file);
+            }
+
+            if (!formData.has('files')) return;
+
+            uploadProgress.classList.add('show');
+            progressFill.style.width = '0%';
+
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const response = await fetch(`${API_BASE}/api/gallery/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                progressFill.style.width = '100%';
+
+                const result = await response.json();
+                if (result.code === 0) {
+                    showToast(`上传成功 ${result.data.success.length} 张`);
+                    loadImages();
+                } else {
+                    showToast(result.message || '上传失败');
+                }
+            } catch (err) {
+                showToast('上传失败：' + err.message);
+            } finally {
+                setTimeout(() => {
+                    uploadProgress.classList.remove('show');
+                    fileInput.value = '';
+                }, 1000);
+            }
+        }
+
+        // ==================== 加载专辑 ====================
+        async function loadAlbums() {
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const response = await fetch(`${API_BASE}/api/gallery/albums`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                
+                if (result.code === 0) {
+                    albums = result.data || [];
+                    renderAlbums();
+                }
+            } catch (err) {
+                console.error('加载专辑失败:', err);
+            }
+        }
+
+        function renderAlbums() {
+            const list = document.getElementById('albumsList');
+            list.innerHTML = `
+                <div class="album-item ${currentAlbum === 'all' ? 'active' : ''}" data-album="all">
+                    <i class="fa-solid fa-images"></i> 全部
+                </div>
+                ${albums.map(album => `
+                    <div class="album-item ${currentAlbum === album.id ? 'active' : ''}" data-album="${album.id}">
+                        <i class="fa-solid fa-folder"></i> ${album.name}
+                    </div>
+                `).join('')}
+                <div class="album-item album-add" id="addAlbumBtn">
+                    <i class="fa-solid fa-plus"></i> 新建专辑
+                </div>
+            `;
+
+            // 绑定点击事件
+            list.querySelectorAll('.album-item[data-album]').forEach(item => {
+                item.addEventListener('click', () => {
+                    currentAlbum = item.dataset.album;
+                    renderAlbums();
+                    loadImages();
+                });
+            });
+
+            document.getElementById('addAlbumBtn').addEventListener('click', createAlbum);
+        }
+
+        async function createAlbum() {
+            const name = prompt('专辑名称：');
+            if (!name) return;
+
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const response = await fetch(`${API_BASE}/api/gallery/albums`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const result = await response.json();
+                if (result.code === 0) {
+                    showToast('专辑创建成功');
+                    loadAlbums();
+                } else {
+                    showToast(result.message || '创建失败');
+                }
+            } catch (err) {
+                showToast('创建失败');
+            }
+        }
+
+        // ==================== 加载图片 ====================
+        async function loadImages() {
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const url = currentAlbum === 'all' 
+                    ? `${API_BASE}/api/gallery/images/by-date`
+                    : `${API_BASE}/api/gallery/images?album_id=${currentAlbum}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+
+                if (result.code === 0) {
+                    renderImages(result.data);
+                }
+            } catch (err) {
+                console.error('加载图片失败:', err);
+                showToast('加载失败，请检查登录状态');
+            }
+        }
+
+        function renderImages(data) {
+            const container = document.getElementById('galleryContent');
+            
+            if (currentAlbum === 'all') {
+                // 按日期分组展示
+                const groups = data.groups || [];
+                if (groups.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fa-regular fa-images"></i>
+                            <p>暂无图片，上传第一张学习截图吧~</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = groups.map(group => `
+                    <div class="date-group">
+                        <div class="date-header">
+                            <span class="date-title">${group.date}</span>
+                            <span class="date-count">${group.count} 张</span>
+                        </div>
+                        <div class="images-grid">
+                            ${group.images.map(img => renderImageItem(img)).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                // 专辑视图 - 平铺展示
+                const images = data.list || [];
+                if (images.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fa-regular fa-folder-open"></i>
+                            <p>专辑暂无图片</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="images-grid">
+                        ${images.map(img => renderImageItem(img)).join('')}
+                    </div>
+                `;
+            }
+
+            // 绑定图片点击事件
+            container.querySelectorAll('.image-item img').forEach(img => {
+                img.addEventListener('click', () => previewImage(img.src));
+            });
+        }
+
+        function renderImageItem(img) {
+            return `
+                <div class="image-item" data-id="${img.id}">
+                    <img src="${img.file_path}" alt="${img.file_name}" loading="lazy">
+                    <div class="image-overlay">
+                        <div class="image-desc">${img.description || img.file_name}</div>
+                        <div class="image-actions">
+                            <button class="image-btn" onclick="event.stopPropagation(); toggleFavorite(${img.id})" title="收藏">
+                                <i class="fa-${img.is_favorite ? 'solid' : 'regular'} fa-heart"></i>
+                            </button>
+                            <button class="image-btn" onclick="event.stopPropagation(); editImage(${img.id})" title="编辑">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="image-btn delete" onclick="event.stopPropagation(); deleteImage(${img.id})" title="删除">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==================== 图片操作 ====================
+        function previewImage(src) {
+            const modal = document.getElementById('previewModal');
+            const img = document.getElementById('previewImage');
+            img.src = src;
+            modal.classList.add('show');
+        }
+
+        document.getElementById('previewClose').addEventListener('click', () => {
+            document.getElementById('previewModal').classList.remove('show');
+        });
+
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'previewModal') {
+                document.getElementById('previewModal').classList.remove('show');
+            }
+        });
+
+        async function toggleFavorite(id) {
+            // 实现收藏功能
+            showToast('收藏功能开发中...');
+        }
+
+        async function editImage(id) {
+            const desc = prompt('图片描述：');
+            if (desc === null) return;
+
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const response = await fetch(`${API_BASE}/api/gallery/images/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ description: desc })
+                });
+
+                const result = await response.json();
+                if (result.code === 0) {
+                    showToast('更新成功');
+                    loadImages();
+                }
+            } catch (err) {
+                showToast('更新失败');
+            }
+        }
+
+        async function deleteImage(id) {
+            if (!confirm('确定要删除这张图片吗？')) return;
+
+            try {
+                const token = localStorage.getItem('tinyweb_token');
+                const response = await fetch(`${API_BASE}/api/gallery/images/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const result = await response.json();
+                if (result.code === 0) {
+                    showToast('已移入回收站');
+                    loadImages();
+                }
+            } catch (err) {
+                showToast('删除失败');
+            }
+        }
+
+        // ==================== Toast ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查登录
+            const token = localStorage.getItem('tinyweb_token');
+            if (!token) {
+                showToast('请先登录');
+                setTimeout(() => window.location.href = 'index.html', 1500);
+                return;
+            }
+
+            loadAlbums();
+            loadImages();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('previewModal').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
