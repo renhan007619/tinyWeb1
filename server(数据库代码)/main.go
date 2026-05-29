@@ -386,6 +386,8 @@ func startServer() {
 			handler.GetTags(w, r)
 		case http.MethodPost:
 			handler.CreateTag(w, r)
+		case http.MethodDelete:
+			handler.DeleteTag(w, r)
 		default:
 			sendMethodNotAllowed(w)
 		}

@@ -6505,7 +6505,7 @@
                 var container = document.getElementById('focusTags');
                 container.innerHTML = '';
 
-                // 默认标签
+                // 默认标签（不可删除）
                 var defaultTags = [
                     { name: 'Go语言', color: '#FF6B6B' },
                     { name: '算法', color: '#00B894' },
@@ -6524,10 +6524,35 @@
                     var btn = document.createElement('button');
                     btn.className = 'focus-tag' + (self.tag === tag.name ? ' active' : '');
                     btn.setAttribute('data-tag', tag.name);
-                    btn.innerHTML = '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + tag.name;
-                    btn.addEventListener('click', function() {
+                    
+                    // 检查是否是自定义标签（有ID的就是来自后端的自定义标签）
+                    var isCustomTag = tag.id !== undefined;
+                    var deleteIcon = isCustomTag ? '<i class="fa-solid fa-xmark focus-tag-del" style="margin-left:4px;font-size:0.65rem;opacity:0.6;" title="删除标签"></i>' : '';
+                    
+                    btn.innerHTML = '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + tag.name + deleteIcon;
+                    
+                    // 点击标签选择
+                    btn.addEventListener('click', function(e) {
+                        // 如果点击的是删除图标，不触发选择
+                        if (e.target.classList.contains('focus-tag-del') || e.target.closest('.focus-tag-del')) {
+                            return;
+                        }
                         self.selectTag(tag.name, tag.color);
                     });
+                    
+                    // 如果是自定义标签，绑定删除事件
+                    if (isCustomTag) {
+                        var delIcon = btn.querySelector('.focus-tag-del');
+                        if (delIcon) {
+                            delIcon.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                if (confirm('确定要删除标签 "' + tag.name + '" 吗？')) {
+                                    self.deleteTag(tag.id, tag.name);
+                                }
+                            });
+                        }
+                    }
+                    
                     container.appendChild(btn);
                 });
 
@@ -6540,6 +6565,32 @@
                     document.getElementById('focusNewTagInput').focus();
                 });
                 container.appendChild(addBtn);
+            },
+
+            // ---- 删除标签 ----
+            deleteTag: function(tagId, tagName) {
+                var self = this;
+                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/tags/' + tagId, {
+                    method: 'DELETE'
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code === 0) {
+                        // 删除成功，从本地列表中移除
+                        self.tags = self.tags.filter(function(t) { return t.id !== tagId; });
+                        // 如果当前选中的标签被删除了，切换到默认标签
+                        if (self.tag === tagName) {
+                            self.selectTag('Go语言', '#FF6B6B');
+                        }
+                        self.renderTags();
+                    } else {
+                        alert(res.message || '删除标签失败');
+                    }
+                })
+                .catch(function(err) {
+                    console.warn('[FocusTimer] 删除标签失败:', err);
+                    alert('删除标签失败，请稍后重试');
+                });
             },
 
             // ---- 创建标签 ----
