@@ -6688,6 +6688,25 @@
             renderTags: function() {
                 var self = this;
                 var container = document.getElementById('focusTags');
+                
+                // 先保存删除模式状态
+                var wasDeleteMode = this._deleteMode;
+                
+                // 使用事件委托绑定删除按钮点击（在设置HTML之前）
+                container.onclick = function(e) {
+                    var deleteBtn = e.target.closest('.focus-tag-delete-btn');
+                    if (deleteBtn) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        var tagId = deleteBtn.getAttribute('data-tag-id');
+                        var tagName = deleteBtn.getAttribute('data-tag-name');
+                        if (tagId && tagName) {
+                            self.showDeleteConfirm(tagId, tagName);
+                        }
+                        return false;
+                    }
+                };
+                
                 container.innerHTML = '';
 
                 // 默认标签（不可删除）
@@ -6714,12 +6733,12 @@
                     var isCustomTag = tag.id !== undefined;
                     
                     // 删除模式下的红叉按钮（仅自定义标签）
-                    var deleteBtn = '';
-                    if (isCustomTag) {
-                        deleteBtn = '<span class="focus-tag-delete-btn" data-tag-id="' + tag.id + '" data-tag-name="' + tag.name + '" title="删除"><i class="fa-solid fa-xmark"></i></span>';
+                    var deleteBtnHtml = '';
+                    if (isCustomTag && wasDeleteMode) {
+                        deleteBtnHtml = '<span class="focus-tag-delete-btn" data-tag-id="' + tag.id + '" data-tag-name="' + self._escapeHtml(tag.name) + '" title="删除"><i class="fa-solid fa-xmark"></i></span>';
                     }
                     
-                    btn.innerHTML = deleteBtn + '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + tag.name;
+                    btn.innerHTML = deleteBtnHtml + '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + self._escapeHtml(tag.name);
                     
                     // 点击标签选择
                     btn.addEventListener('click', function(e) {
@@ -6750,7 +6769,7 @@
                 
                 // "-删除" 按钮
                 var deleteModeBtn = document.createElement('button');
-                deleteModeBtn.className = 'focus-tag-delete-mode' + (self._deleteMode ? ' active' : '');
+                deleteModeBtn.className = 'focus-tag-delete-mode' + (wasDeleteMode ? ' active' : '');
                 deleteModeBtn.innerHTML = '<i class="fa-solid fa-minus" style="font-size:0.7rem"></i> 删除';
                 deleteModeBtn.addEventListener('click', function() {
                     self.toggleDeleteMode();
@@ -6758,19 +6777,6 @@
                 btnContainer.appendChild(deleteModeBtn);
                 
                 container.appendChild(btnContainer);
-
-                // 绑定删除按钮点击事件（事件委托）
-                if (this._deleteMode) {
-                    var deleteBtns = container.querySelectorAll('.focus-tag-delete-btn');
-                    deleteBtns.forEach(function(btn) {
-                        btn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            var tagId = this.getAttribute('data-tag-id');
-                            var tagName = this.getAttribute('data-tag-name');
-                            self.showDeleteConfirm(tagId, tagName);
-                        });
-                    });
-                }
             },
 
             // ---- 切换删除模式 ----
