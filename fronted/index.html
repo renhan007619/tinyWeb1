@@ -2445,17 +2445,28 @@
             background: rgba(108, 92, 231, 0.08);
         }
         .focus-tag .focus-tag-del {
-            margin-left: 4px;
-            font-size: 0.65rem;
-            opacity: 0.5;
+            margin-left: 6px;
+            font-size: 0.75rem;
+            opacity: 0.7;
             transition: all 0.2s ease;
             color: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
         }
-        .focus-tag:hover .focus-tag-del,
-        .focus-tag .focus-tag-del:hover {
+        .focus-tag:hover .focus-tag-del {
             opacity: 1;
+            background: rgba(255, 77, 77, 0.2);
             color: #ff4d4d;
-            transform: scale(1.2);
+        }
+        .focus-tag .focus-tag-del:hover {
+            background: #ff4d4d;
+            color: #fff;
+            transform: scale(1.1);
         }
         .focus-tag.active {
             border-color: var(--accent);
@@ -5615,7 +5626,7 @@
                     if (res.code === 0 && res.data) {
                         // token 有效，显示已登录状态
                         self.user = res.data;
-                        self.showLoggedIn(res.data);
+                        selklf.showLoggedIn(res.data);
                     } else {
                         // token 无效或过期，静默清理，不弹窗打扰用户
                         self.clearToken();
