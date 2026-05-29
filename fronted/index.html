@@ -6710,6 +6710,7 @@
                 container.innerHTML = '';
 
                 // 默认标签（不可删除）
+                var defaultTagNames = ['Go语言', '算法', '前端'];
                 var defaultTags = [
                     { name: 'Go语言', color: '#FF6B6B' },
                     { name: '算法', color: '#00B894' },
@@ -6717,11 +6718,28 @@
                 ];
 
                 // 合并：默认 + 后端自定义
-                var allTags = defaultTags.slice();
+                var allTags = [];
+                
+                // 先添加默认标签
+                defaultTags.forEach(function(tag) {
+                    allTags.push({
+                        name: tag.name,
+                        color: tag.color,
+                        isCustom: false
+                    });
+                });
+                
+                // 再添加后端自定义标签（带ID）
                 this.tags.forEach(function(t) {
                     // 避免与默认标签重复
-                    var isDup = defaultTags.some(function(d) { return d.name === t.name; });
-                    if (!isDup) allTags.push(t);
+                    if (!defaultTagNames.includes(t.name)) {
+                        allTags.push({
+                            name: t.name,
+                            color: t.color,
+                            id: t.id,
+                            isCustom: true
+                        });
+                    }
                 });
 
                 allTags.forEach(function(tag) {
@@ -6729,12 +6747,9 @@
                     btn.className = 'focus-tag' + (self.tag === tag.name ? ' active' : '');
                     btn.setAttribute('data-tag', tag.name);
                     
-                    // 检查是否是自定义标签（有ID的就是来自后端的自定义标签）
-                    var isCustomTag = tag.id !== undefined;
-                    
                     // 删除模式下的红叉按钮（仅自定义标签）
                     var deleteBtnHtml = '';
-                    if (isCustomTag && wasDeleteMode) {
+                    if (tag.isCustom && wasDeleteMode && tag.id) {
                         deleteBtnHtml = '<span class="focus-tag-delete-btn" data-tag-id="' + tag.id + '" data-tag-name="' + self._escapeHtml(tag.name) + '" title="删除"><i class="fa-solid fa-xmark"></i></span>';
                     }
                     
