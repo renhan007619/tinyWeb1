@@ -2444,29 +2444,159 @@
             border-color: var(--accent);
             background: rgba(108, 92, 231, 0.08);
         }
-        .focus-tag .focus-tag-del {
-            margin-left: 6px;
-            font-size: 0.75rem;
-            opacity: 0.7;
-            transition: all 0.2s ease;
-            color: inherit;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 16px;
-            height: 16px;
+        /* 删除模式下的标签样式 */
+        .focus-tags.delete-mode .focus-tag {
+            position: relative;
+            animation: shake 0.3s ease-in-out infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-1px); }
+            75% { transform: translateX(1px); }
+        }
+
+        /* 小红叉按钮 */
+        .focus-tag-delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        .focus-tag:hover .focus-tag-del {
-            opacity: 1;
-            background: rgba(255, 77, 77, 0.2);
-            color: #ff4d4d;
-        }
-        .focus-tag .focus-tag-del:hover {
             background: #ff4d4d;
             color: #fff;
-            transform: scale(1.1);
+            border: 2px solid var(--card-bg);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            box-shadow: 0 2px 6px rgba(255, 77, 77, 0.4);
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        
+        .focus-tags.delete-mode .focus-tag-delete-btn {
+            display: flex;
+        }
+        
+        .focus-tag-delete-btn:hover {
+            transform: scale(1.15);
+            background: #ff3333;
+            box-shadow: 0 3px 10px rgba(255, 77, 77, 0.6);
+        }
+
+        /* 删除模式按钮 */
+        .focus-tag-delete-mode {
+            padding: 5px 14px;
+            border-radius: 16px;
+            border: 1.5px dashed var(--avatar-border);
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        .focus-tag-delete-mode:hover {
+            border-color: #ff4d4d;
+            color: #ff4d4d;
+            background: rgba(255, 77, 77, 0.08);
+        }
+        
+        .focus-tag-delete-mode.active {
+            border-color: #ff4d4d;
+            background: rgba(255, 77, 77, 0.15);
+            color: #ff4d4d;
+        }
+
+        /* 确认删除弹窗 */
+        .focus-delete-confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 10002;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .focus-delete-confirm-overlay.show {
+            display: flex;
+        }
+        
+        .focus-delete-confirm-modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            width: 280px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid var(--avatar-border);
+            animation: modalIn 0.3s ease;
+        }
+        
+        .focus-delete-confirm-modal .confirm-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            color: #ff4d4d;
+        }
+        
+        .focus-delete-confirm-modal .confirm-title {
+            font-size: 1.05rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .focus-delete-confirm-modal .confirm-text {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+        
+        .focus-delete-confirm-modal .confirm-tag-name {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .focus-delete-confirm-modal .confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .focus-delete-confirm-modal .confirm-actions button {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .focus-delete-confirm-modal .btn-cancel {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-sub);
+        }
+        
+        .focus-delete-confirm-modal .btn-cancel:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        
+        .focus-delete-confirm-modal .btn-confirm-delete {
+            background: #ff4d4d;
+            color: #fff;
+        }
+        
+        .focus-delete-confirm-modal .btn-confirm-delete:hover {
+            background: #ff3333;
         }
         .focus-tag.active {
             border-color: var(--accent);
@@ -4297,6 +4427,19 @@
         </div>
     </div>
 
+    <!-- ==================== 删除标签确认弹窗 ==================== -->
+    <div class="focus-delete-confirm-overlay" id="focusDeleteConfirmOverlay">
+        <div class="focus-delete-confirm-modal">
+            <div class="confirm-icon"><i class="fa-solid fa-trash-can"></i></div>
+            <div class="confirm-title">确定要删除吗？</div>
+            <div class="confirm-text">标签 "<span class="confirm-tag-name" id="confirmTagName"></span>" 将被永久删除</div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" id="focusDeleteCancelBtn">取消</button>
+                <button class="btn-confirm-delete" id="focusDeleteConfirmBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== 完成弹窗（全屏遮罩 + 模态框）==================== -->
     <div class="focus-complete-overlay" id="focusCompleteOverlay">
         <div class="focus-complete-modal">
@@ -6014,6 +6157,20 @@
                 document.getElementById('focusReportOverlay').addEventListener('click', function() {
                     self.hideReport();
                 });
+
+                // 删除确认弹窗按钮
+                document.getElementById('focusDeleteCancelBtn').addEventListener('click', function() {
+                    self.closeDeleteConfirm();
+                });
+                document.getElementById('focusDeleteConfirmBtn').addEventListener('click', function() {
+                    self.confirmDeleteTag();
+                });
+                // 点击遮罩关闭删除确认弹窗
+                document.getElementById('focusDeleteConfirmOverlay').addEventListener('click', function(e) {
+                    if (e.target.id === 'focusDeleteConfirmOverlay') {
+                        self.closeDeleteConfirm();
+                    }
+                });
             },
 
             // ---- 悬浮球拖拽初始化 ----
@@ -6523,6 +6680,10 @@
                     });
             },
 
+            // ---- 删除模式状态 ----
+            _deleteMode: false,
+            _tagToDelete: null,
+
             // ---- 渲染标签按钮 ----
             renderTags: function() {
                 var self = this;
@@ -6551,35 +6712,32 @@
                     
                     // 检查是否是自定义标签（有ID的就是来自后端的自定义标签）
                     var isCustomTag = tag.id !== undefined;
-                    var deleteIcon = isCustomTag ? '<i class="fa-solid fa-xmark focus-tag-del" style="margin-left:4px;font-size:0.65rem;opacity:0.6;" title="删除标签"></i>' : '';
                     
-                    btn.innerHTML = '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + tag.name + deleteIcon;
+                    // 删除模式下的红叉按钮（仅自定义标签）
+                    var deleteBtn = '';
+                    if (isCustomTag) {
+                        deleteBtn = '<span class="focus-tag-delete-btn" data-tag-id="' + tag.id + '" data-tag-name="' + tag.name + '" title="删除"><i class="fa-solid fa-xmark"></i></span>';
+                    }
+                    
+                    btn.innerHTML = deleteBtn + '<span class="focus-tag-dot" style="background:' + tag.color + '"></span>' + tag.name;
                     
                     // 点击标签选择
                     btn.addEventListener('click', function(e) {
-                        // 如果点击的是删除图标，不触发选择
-                        if (e.target.classList.contains('focus-tag-del') || e.target.closest('.focus-tag-del')) {
+                        // 如果点击的是删除按钮，不触发选择
+                        if (e.target.closest('.focus-tag-delete-btn')) {
                             return;
                         }
                         self.selectTag(tag.name, tag.color);
                     });
                     
-                    // 如果是自定义标签，绑定删除事件
-                    if (isCustomTag) {
-                        var delIcon = btn.querySelector('.focus-tag-del');
-                        if (delIcon) {
-                            delIcon.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                if (confirm('确定要删除标签 "' + tag.name + '" 吗？')) {
-                                    self.deleteTag(tag.id, tag.name);
-                                }
-                            });
-                        }
-                    }
-                    
                     container.appendChild(btn);
                 });
 
+                // 按钮容器：+自定义 和 -删除
+                var btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.gap = '8px';
+                
                 // "+自定义" 按钮
                 var addBtn = document.createElement('button');
                 addBtn.className = 'focus-tag focus-tag-add';
@@ -6588,7 +6746,65 @@
                     document.getElementById('focusNewTagForm').classList.toggle('show');
                     document.getElementById('focusNewTagInput').focus();
                 });
-                container.appendChild(addBtn);
+                btnContainer.appendChild(addBtn);
+                
+                // "-删除" 按钮
+                var deleteModeBtn = document.createElement('button');
+                deleteModeBtn.className = 'focus-tag-delete-mode' + (self._deleteMode ? ' active' : '');
+                deleteModeBtn.innerHTML = '<i class="fa-solid fa-minus" style="font-size:0.7rem"></i> 删除';
+                deleteModeBtn.addEventListener('click', function() {
+                    self.toggleDeleteMode();
+                });
+                btnContainer.appendChild(deleteModeBtn);
+                
+                container.appendChild(btnContainer);
+
+                // 绑定删除按钮点击事件（事件委托）
+                if (this._deleteMode) {
+                    var deleteBtns = container.querySelectorAll('.focus-tag-delete-btn');
+                    deleteBtns.forEach(function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var tagId = this.getAttribute('data-tag-id');
+                            var tagName = this.getAttribute('data-tag-name');
+                            self.showDeleteConfirm(tagId, tagName);
+                        });
+                    });
+                }
+            },
+
+            // ---- 切换删除模式 ----
+            toggleDeleteMode: function() {
+                this._deleteMode = !this._deleteMode;
+                var container = document.getElementById('focusTags');
+                
+                if (this._deleteMode) {
+                    container.classList.add('delete-mode');
+                } else {
+                    container.classList.remove('delete-mode');
+                }
+                
+                this.renderTags();
+            },
+
+            // ---- 显示删除确认弹窗 ----
+            showDeleteConfirm: function(tagId, tagName) {
+                this._tagToDelete = { id: tagId, name: tagName };
+                document.getElementById('confirmTagName').textContent = tagName;
+                document.getElementById('focusDeleteConfirmOverlay').classList.add('show');
+            },
+
+            // ---- 关闭删除确认弹窗 ----
+            closeDeleteConfirm: function() {
+                this._tagToDelete = null;
+                document.getElementById('focusDeleteConfirmOverlay').classList.remove('show');
+            },
+
+            // ---- 确认删除标签 ----
+            confirmDeleteTag: function() {
+                if (!this._tagToDelete) return;
+                this.deleteTag(this._tagToDelete.id, this._tagToDelete.name);
+                this.closeDeleteConfirm();
             },
 
             // ---- 删除标签 ----
