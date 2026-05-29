@@ -2444,6 +2444,19 @@
             border-color: var(--accent);
             background: rgba(108, 92, 231, 0.08);
         }
+        .focus-tag .focus-tag-del {
+            margin-left: 4px;
+            font-size: 0.65rem;
+            opacity: 0.5;
+            transition: all 0.2s ease;
+            color: inherit;
+        }
+        .focus-tag:hover .focus-tag-del,
+        .focus-tag .focus-tag-del:hover {
+            opacity: 1;
+            color: #ff4d4d;
+            transform: scale(1.2);
+        }
         .focus-tag.active {
             border-color: var(--accent);
             background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(162, 155, 254, 0.15));
