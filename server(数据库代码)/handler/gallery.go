@@ -1,5 +1,5 @@
-// Package handler 图库功能 - Day 1 实现
-// 核心功能：上传、查询、删除（软删除）
+// Package handler 图库功能 - Day 3 完整实现
+// 核心功能：上传、查询、删除（软删除）、专辑管理、批量操作、回收站
 package handler
 
 import (
@@ -378,6 +378,158 @@ func DeleteAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendJSON(w, 200, model.SuccessResponse(map[string]string{"message": "删除成功"}))
+}
+
+// ============================================
+// Day 3 新增：高级功能
+// ============================================
+
+// MoveImagesToAlbum POST /api/gallery/images/move - 批量移动图片到专辑
+func MoveImagesToAlbum(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		sendJSON(w, 405, model.ErrorResponse(405, "方法不允许"))
+		return
+	}
+	userID := getGalleryUserID(r)
+
+	var req model.BatchMoveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, 400, model.ErrorResponse(400, "参数解析失败"))
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		sendJSON(w, 400, model.ErrorResponse(400, "请选择要移动的图片"))
+		return
+	}
+
+	// 验证目标album是否存在（如果指定了）
+	if req.AlbumID != nil {
+		var count int64
+		db.GetDB().Model(&model.GalleryAlbum{}).Where("id = ? AND user_id = ?", *req.AlbumID, userID).Count(&count)
+		if count == 0 {
+			sendJSON(w, 404, model.ErrorResponse(404, "目标专辑不存在"))
+			return
+		}
+	}
+
+	// 执行批量更新
+	result := db.GetDB().Model(&model.GalleryImage{}).
+		Where("id IN ? AND user_id = ? AND is_deleted = ?", req.IDs, userID, false).
+		Update("album_id", req.AlbumID)
+
+	if result.Error != nil {
+		sendJSON(w, 500, model.ErrorResponse(500, "移动失败"))
+		return
+	}
+
+	sendJSON(w, 200, model.SuccessResponse(map[string]interface{}{
+		"moved_count": result.RowsAffected,
+		"message":     fmt.Sprintf("成功移动 %d 张图片", result.RowsAffected),
+	}))
+}
+
+// GetRecycleBin GET /api/gallery/recycle-bin - 回收站列表
+func GetRecycleBin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendJSON(w, 405, model.ErrorResponse(405, "方法不允许"))
+		return
+	}
+	userID := getGalleryUserID(r)
+
+	page, pageSize := 1, 50
+	fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
+	fmt.Sscanf(r.URL.Query().Get("page_size"), "%d", &pageSize)
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// 查询30天内的已删除图片
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+
+	query := db.GetDB().Model(&model.GalleryImage{}).
+		Where("user_id = ? AND is_deleted = ? AND deleted_time > ?", userID, true, thirtyDaysAgo)
+
+	var total int64
+	query.Count(&total)
+
+	var images []model.GalleryImage
+	query.Order("deleted_time DESC").Limit(pageSize).Offset((page - 1) * pageSize).Find(&images)
+
+	items := make([]model.GalleryImageItem, len(images))
+	for i, img := range images {
+		items[i] = convertItem(img)
+	}
+
+	// 查询总共将删除多少图片（超过30天的）
+	var willDeleteCount int64
+	db.GetDB().Model(&model.GalleryImage{}).
+		Where("user_id = ? AND is_deleted = ? AND deleted_time <= ?", userID, true, thirtyDaysAgo).
+		Count(&willDeleteCount)
+
+	sendJSON(w, 200, model.SuccessResponse(map[string]interface{}{
+		"list":             items,
+		"total":            total,
+		"page":             page,
+		"page_size":        pageSize,
+		"total_pages":      int((total + int64(pageSize) - 1) / int64(pageSize)),
+		"will_delete_soon": willDeleteCount,
+		"expire_days":      30,
+	}))
+}
+
+// RestoreImage PUT /api/gallery/recycle-bin/:id/restore - 恢复图片
+func RestoreImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		sendJSON(w, 405, model.ErrorResponse(405, "方法不允许"))
+		return
+	}
+	userID := getGalleryUserID(r)
+	id := extractID(r.URL.Path, "/api/gallery/recycle-bin/")
+
+	// 去掉 /restore 后缀
+	id = strings.TrimSuffix(id, "/restore")
+
+	result := db.GetDB().Model(&model.GalleryImage{}).
+		Where("id = ? AND user_id = ? AND is_deleted = ?", id, userID, true).
+		Updates(map[string]interface{}{
+			"is_deleted":   false,
+			"deleted_time": nil,
+		})
+
+	if result.RowsAffected == 0 {
+		sendJSON(w, 404, model.ErrorResponse(404, "图片不存在或已过期"))
+		return
+	}
+	sendJSON(w, 200, model.SuccessResponse(map[string]string{"message": "已恢复"}))
+}
+
+// PermanentDelete DELETE /api/gallery/recycle-bin/:id - 永久删除
+func PermanentDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		sendJSON(w, 405, model.ErrorResponse(405, "方法不允许"))
+		return
+	}
+	userID := getGalleryUserID(r)
+	id := extractID(r.URL.Path, "/api/gallery/recycle-bin/")
+
+	// 查询图片信息
+	var img model.GalleryImage
+	if err := db.GetDB().Where("id = ? AND user_id = ?", id, userID).First(&img).Error; err != nil {
+		sendJSON(w, 404, model.ErrorResponse(404, "图片不存在"))
+		return
+	}
+
+	// 删除物理文件
+	os.Remove(img.FilePath)
+	// 尝试删除缩略图（如果存在）
+	thumbPath := filepath.Join(filepath.Dir(img.FilePath), "thumb_"+filepath.Base(img.FilePath))
+	os.Remove(thumbPath)
+
+	// 删除数据库记录
+	db.GetDB().Unscoped().Delete(&img)
+
+	sendJSON(w, 200, model.SuccessResponse(map[string]string{"message": "已永久删除"}))
 }
 
 // ============================================

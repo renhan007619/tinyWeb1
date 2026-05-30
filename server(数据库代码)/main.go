@@ -462,8 +462,22 @@ func startServer() {
 			sendMethodNotAllowed(w)
 		}
 	}))
+	// 批量移动图片到专辑（Day3 新增）
+	mux.HandleFunc("/api/gallery/images/move", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.MoveImagesToAlbum(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
 	// 图片单条操作（更新/删除）
 	mux.HandleFunc("/api/gallery/images/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		// 排除已注册的其他路径
+		if path == "/api/gallery/images/by-date" || path == "/api/gallery/images/move" {
+			http.NotFound(w, r)
+			return
+		}
 		switch r.Method {
 		case http.MethodPut:
 			handler.UpdateImage(w, r)
@@ -491,6 +505,26 @@ func startServer() {
 			handler.UpdateAlbum(w, r)
 		case http.MethodDelete:
 			handler.DeleteAlbum(w, r)
+		default:
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 回收站功能（Day3 新增）
+	// 回收站列表
+	mux.HandleFunc("/api/gallery/recycle-bin", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetRecycleBin(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 恢复/永久删除操作
+	mux.HandleFunc("/api/gallery/recycle-bin/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			handler.RestoreImage(w, r)
+		case http.MethodDelete:
+			handler.PermanentDelete(w, r)
 		default:
 			sendMethodNotAllowed(w)
 		}

@@ -6692,21 +6692,6 @@
                 // 先保存删除模式状态
                 var wasDeleteMode = this._deleteMode;
                 
-                // 使用事件委托绑定删除按钮点击（在设置HTML之前）
-                container.onclick = function(e) {
-                    var deleteBtn = e.target.closest('.focus-tag-delete-btn');
-                    if (deleteBtn) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        var tagId = deleteBtn.getAttribute('data-tag-id');
-                        var tagName = deleteBtn.getAttribute('data-tag-name');
-                        if (tagId && tagName) {
-                            self.showDeleteConfirm(tagId, tagName);
-                        }
-                        return false;
-                    }
-                };
-                
                 container.innerHTML = '';
 
                 // 默认标签（不可删除）
