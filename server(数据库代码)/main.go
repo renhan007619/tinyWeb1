@@ -37,6 +37,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gorm.io/gorm"
@@ -549,6 +550,11 @@ func startServer() {
 	})))
 	// 公开访问页面：/pages/:slug
 	mux.HandleFunc("/pages/", handler.ServePage(database))
+
+	// ---- 上传文件静态服务 ----
+	// 提供图片访问服务 /uploads/gallery/...
+	uploadsDir := filepath.Join(rootDir, "..", "uploads")
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
 
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理

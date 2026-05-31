@@ -1352,15 +1352,19 @@
             }
             
             if (isRecycleView) {
-                // 隐藏专辑栏和上传区域
+                // 隐藏专辑栏、上传区域、面包屑
                 document.getElementById('albumsSection').classList.add('hidden');
                 document.querySelector('.upload-section').style.display = 'none';
+                document.getElementById('breadcrumb').style.display = 'none';
                 
-                // 更新面包屑为回收站
-                updateBreadcrumb([
-                    { label: '全部', view: 'gallery', album: 'all', icon: 'fa-solid fa-images' },
-                    { label: '回收站', view: 'recycle', icon: 'fa-solid fa-trash-can' }
-                ]);
+                // 修改返回按钮为"返回图库"
+                const navBack = document.querySelector('.nav-back');
+                navBack.innerHTML = '<i class="fa-solid fa-arrow-left"></i> 返回图库';
+                navBack.onclick = (e) => {
+                    e.preventDefault();
+                    toggleRecycleView();
+                    return false;
+                };
                 
                 batchModeBtn.style.display = 'none';
                 batchMoveBtn.style.display = 'none';
@@ -1369,9 +1373,16 @@
                 batchDeleteForeverBtn.style.display = 'flex';
                 loadRecycleBin();
             } else {
-                // 恢复显示专辑栏和上传区域
+                // 恢复显示专辑栏、上传区域、面包屑
                 document.getElementById('albumsSection').classList.remove('hidden');
                 document.querySelector('.upload-section').style.display = 'block';
+                document.getElementById('breadcrumb').style.display = 'flex';
+                
+                // 恢复返回按钮为"返回首页"
+                const navBack = document.querySelector('.nav-back');
+                navBack.innerHTML = '<i class="fa-solid fa-arrow-left"></i> 返回首页';
+                navBack.onclick = null;
+                navBack.href = 'index.html';
                 
                 // 重置为全部视图
                 currentAlbum = 'all';
