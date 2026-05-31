@@ -5764,21 +5764,31 @@
 
             // 用 token 请求 /api/auth/me 验证是否有效
             this.fetchWithAuth(this.API_BASE + '/api/auth/me')
-                .then(function(r) { return r.json(); })
+                .then(function(r) { 
+                    // 只有明确返回401时才清除token
+                    if (r.status === 401) {
+                        self.clearToken();
+                        self.showLoggedOut();
+                        return null;
+                    }
+                    return r.json(); 
+                })
                 .then(function(res) {
+                    if (!res) return; // 前面已经处理了401情况
                     if (res.code === 0 && res.data) {
                         // token 有效，显示已登录状态
                         self.user = res.data;
-                        selklf.showLoggedIn(res.data);
-                    } else {
-                        // token 无效或过期，静默清理，不弹窗打扰用户
+                        self.showLoggedIn(res.data);
+                    } else if (res.code === 401) {
+                        // 明确的401错误，清除token
                         self.clearToken();
                         self.showLoggedOut();
                     }
+                    // 其他错误码（如500、403等）不处理，保持当前登录状态
                 })
-                .catch(function() {
-                    // 网络错误，保持当前状态，不弹窗
-                    console.warn('[Auth] 检查登录状态失败');
+                .catch(function(err) {
+                    // 网络错误或其他异常，不处理，保持当前状态
+                    console.warn('[Auth] 检查登录状态失败:', err);
                 });
         },
 

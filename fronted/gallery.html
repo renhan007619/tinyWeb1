@@ -621,6 +621,39 @@
         .delete-forever-btn {
             background: #ff4d4d !important;
         }
+
+        /* 面包屑导航 */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-item {
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--accent);
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-dim);
+        }
+
+        /* 专辑栏显示控制 */
+        .albums-section.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -663,8 +696,15 @@
             </div>
         </section>
 
+        <!-- 面包屑导航 -->
+        <div class="breadcrumb" id="breadcrumb">
+            <span class="breadcrumb-item active" data-view="gallery" id="crumbGallery">
+                <i class="fa-solid fa-images"></i> 全部
+            </span>
+        </div>
+
         <!-- 专辑列表 -->
-        <section class="albums-section">
+        <section class="albums-section" id="albumsSection">
             <div class="section-title"><i class="fa-solid fa-folder-open"></i> 专辑</div>
             <div class="albums-list" id="albumsList">
                 <div class="album-item active" data-album="all">
@@ -817,6 +857,46 @@
             }
         }
 
+        // ==================== 面包屑导航 ====================
+        function updateBreadcrumb(items) {
+            const container = document.getElementById('breadcrumb');
+            container.innerHTML = items.map((item, index) => {
+                const isLast = index === items.length - 1;
+                const icon = item.icon ? `<i class="${item.icon}"></i> ` : '';
+                return `
+                    <span class="breadcrumb-item ${isLast ? 'active' : ''}" 
+                          data-view="${item.view || ''}" 
+                          data-album="${item.album || ''}">
+                        ${icon}${item.label}
+                    </span>
+                    ${!isLast ? '<span class="breadcrumb-separator">/</span>' : ''}
+                `;
+            }).join('');
+            
+            // 绑定点击事件
+            container.querySelectorAll('.breadcrumb-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const view = item.dataset.view;
+                    const album = item.dataset.album;
+                    
+                    if (view === 'gallery' && album === 'all') {
+                        // 返回全部视图
+                        if (isRecycleView) {
+                            toggleRecycleView();
+                        }
+                        currentAlbum = 'all';
+                        loadAlbums();
+                        loadImages();
+                    } else if (view === 'gallery' && album) {
+                        // 返回某个专辑
+                        currentAlbum = album;
+                        renderAlbums();
+                        loadImages();
+                    }
+                });
+            });
+        }
+
         // ==================== 加载专辑 ====================
         async function loadAlbums() {
             try {
@@ -850,6 +930,17 @@
                     <i class="fa-solid fa-plus"></i> 新建专辑
                 </div>
             `;
+
+            // 更新面包屑
+            if (currentAlbum === 'all') {
+                updateBreadcrumb([{ label: '全部', view: 'gallery', album: 'all', icon: 'fa-solid fa-images' }]);
+            } else {
+                const currentAlbumName = albums.find(a => String(a.id) === String(currentAlbum))?.name || '专辑';
+                updateBreadcrumb([
+                    { label: '全部', view: 'gallery', album: 'all', icon: 'fa-solid fa-images' },
+                    { label: currentAlbumName, view: 'gallery', album: currentAlbum }
+                ]);
+            }
 
             // 绑定点击事件
             list.querySelectorAll('.album-item[data-album]').forEach(item => {
@@ -1255,7 +1346,22 @@
             isRecycleView = !isRecycleView;
             recycleBtn.classList.toggle('active');
             
+            // 退出批量选择模式（如果正在批量选择）
+            if (isBatchMode) {
+                toggleBatchMode();
+            }
+            
             if (isRecycleView) {
+                // 隐藏专辑栏和上传区域
+                document.getElementById('albumsSection').classList.add('hidden');
+                document.querySelector('.upload-section').style.display = 'none';
+                
+                // 更新面包屑为回收站
+                updateBreadcrumb([
+                    { label: '全部', view: 'gallery', album: 'all', icon: 'fa-solid fa-images' },
+                    { label: '回收站', view: 'recycle', icon: 'fa-solid fa-trash-can' }
+                ]);
+                
                 batchModeBtn.style.display = 'none';
                 batchMoveBtn.style.display = 'none';
                 batchDeleteBtn.style.display = 'none';
@@ -1263,6 +1369,12 @@
                 batchDeleteForeverBtn.style.display = 'flex';
                 loadRecycleBin();
             } else {
+                // 恢复显示专辑栏和上传区域
+                document.getElementById('albumsSection').classList.remove('hidden');
+                document.querySelector('.upload-section').style.display = 'block';
+                
+                // 重置为全部视图
+                currentAlbum = 'all';
                 batchModeBtn.style.display = 'flex';
                 batchMoveBtn.style.display = 'flex';
                 batchDeleteBtn.style.display = 'flex';
@@ -1303,11 +1415,8 @@
                         <p>回收站是空的</p>
                     </div>
                 `;
-                document.getElementById('albumsList').parentElement.style.display = 'none';
                 return;
             }
-
-            document.getElementById('albumsList').parentElement.style.display = 'none';
             
             container.innerHTML = `
                 <div class="date-group">

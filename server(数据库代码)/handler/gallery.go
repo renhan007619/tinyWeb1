@@ -540,8 +540,8 @@ func convertItem(img model.GalleryImage) model.GalleryImageItem {
 	dir := filepath.Dir(img.FilePath)
 	name := filepath.Base(img.FilePath)
 	return model.GalleryImageItem{
-		ID: img.ID, FilePath: img.FilePath,
-		ThumbPath: filepath.Join(dir, "thumb_"+name),
+		ID: img.ID, FilePath: "/" + img.FilePath,
+		ThumbPath: "/" + filepath.Join(dir, "thumb_"+name),
 		FileName:  img.FileName, FileSize: img.FileSize,
 		UploadDate: img.UploadDate, Description: img.Description,
 		Tags: img.Tags, IsFavorite: img.IsFavorite,
