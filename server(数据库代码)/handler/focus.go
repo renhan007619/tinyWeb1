@@ -23,6 +23,7 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -31,6 +32,8 @@ import (
 	"tinyweb1/db"
 	"tinyweb1/middleware"
 	"tinyweb1/model"
+
+	"gorm.io/gorm"
 )
 
 // getUserID 从 JWT 认证中间件注入的 context 中提取当前登录用户 ID
@@ -87,11 +90,13 @@ func CreateFocusSession(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "专注时长最多4小时"))
 		return
 	}
-
 	// 设置默认标签
 	if req.Tag == "" {
 		req.Tag = "未分类"
+	} else {
+		req.Tag = stripHTMLTags(req.Tag)
 	}
+
 	if req.TagColor == "" {
 		req.TagColor = "#6C5CE7"
 	}
@@ -332,6 +337,7 @@ func CreateTag(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "标签名不能为空"))
 		return
 	}
+	req.Name = stripHTMLTags(req.Name)
 	if len(req.Name) > 50 {
 		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "标签名不能超过50个字符"))
 		return
@@ -375,6 +381,49 @@ func GetTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendJSON(w, http.StatusOK, model.SuccessResponse(tags))
+}
+
+// ============================================================
+// DELETE /api/focus/tags/:id - 删除标签
+// ============================================================
+
+// DeleteTag 删除指定ID的标签
+// 只有该标签的创建者才能删除
+func DeleteTag(w http.ResponseWriter, r *http.Request) {
+	// 从URL中提取标签ID
+	// URL格式: /api/focus/tags/123
+	path := strings.TrimPrefix(r.URL.Path, "/api/focus/tags/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 1 || parts[0] == "" {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "标签ID不能为空"))
+		return
+	}
+
+	tagID := parts[0]
+	userID := getUserID(r)
+	database := db.GetDB()
+
+	// 查询标签是否存在且属于当前用户
+	var tag model.StudyTag
+	if err := database.Where("id = ? AND user_id = ?", tagID, userID).First(&tag).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendJSON(w, http.StatusNotFound, model.ErrorResponse(404, "标签不存在或无权限删除"))
+			return
+		}
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询标签失败"))
+		return
+	}
+
+	// 删除标签
+	if err := database.Delete(&tag).Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "删除标签失败"))
+		return
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(map[string]string{
+		"message": "标签删除成功",
+		"id":      tagID,
+	}))
 }
 
 // ============================================================

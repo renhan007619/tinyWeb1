@@ -310,11 +310,11 @@ type GuestbookListResponse struct {
 //	| upload_by  | varchar(50)   | 上传者用户名                |
 type Page struct {
 	gorm.Model
-	Title    string `gorm:"type:varchar(100);not null" json:"title"`    // 页面显示标题
+	Title    string `gorm:"type:varchar(100);not null" json:"title"`           // 页面显示标题
 	Slug     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"slug"` // URL标识（如 "my-page"）
-	FileName string `gorm:"type:varchar(100);not null" json:"file_name"` // 磁盘存储文件名
-	Size     int64  `gorm:"not null" json:"size"`                        // 文件大小（字节）
-	UploadBy string `gorm:"type:varchar(50);not null" json:"upload_by"`  // 上传者用户名
+	FileName string `gorm:"type:varchar(100);not null" json:"file_name"`       // 磁盘存储文件名
+	Size     int64  `gorm:"not null" json:"size"`                              // 文件大小（字节）
+	UploadBy string `gorm:"type:varchar(50);not null" json:"upload_by"`        // 上传者用户名
 }
 
 // TableName 指定 Page 对应的数据库表名
@@ -505,4 +505,233 @@ func ErrorResponse(code int, message string) APIResponse {
 		Code:    code,
 		Message: message,
 	}
+}
+
+// ============================================================
+// 图库相关模型（Gallery 功能新增 - Day 1）
+// ============================================================
+
+// GalleryImage 图片结构体
+// 对应数据库 gallery_images 表，存储用户上传的图片元数据
+//
+// 设计思路：
+//   - 文件实际存储在磁盘 uploads/gallery/user_{id}/{date}/ 目录
+//   - FilePath 存储相对路径，便于迁移和备份
+//   - UploadDate 单独存日期字符串，用于按日期分组查询
+//   - IsDeleted + DeletedAt 实现回收站功能（软删除）
+//   - OCRText 存储识别的文字内容，支持文字搜索图片
+//   - Width/Height 记录图片尺寸，用于前端布局计算
+//
+// 数据库表结构（由 GORM AutoMigrate 自动创建）：
+//
+//	| 列名          | 类型          | 说明                        |
+//	|---------------|---------------|----------------------------|
+//	| id            | bigint unsigned| 自增主键                    |
+//	| created_at    | datetime(3)   | 创建时间                    |
+//	| updated_at    | datetime(3)   | 更新时间                    |
+//	| deleted_at    | datetime(3)   | 软删除时间                  |
+//	| user_id       | bigint unsigned| 关联用户ID（索引）           |
+//	| file_path     | varchar(255)  | 文件相对路径                |
+//	| file_name     | varchar(255)  | 原始文件名                  |
+//	| file_size     | bigint        | 文件大小(bytes)             |
+//	| mime_type     | varchar(50)   | 文件类型(image/jpeg等)      |
+//	| upload_date   | date          | 上传日期 YYYY-MM-DD（索引）  |
+//	| album_id      | bigint unsigned| 所属专辑ID（可为空）        |
+//	| description   | varchar(500)  | 图片描述                    |
+//	| tags          | varchar(255)  | 标签，逗号分隔              |
+//	| is_deleted    | tinyint(1)    | 是否删除（0=否, 1=是）      |
+//	| deleted_at    | datetime(3)   | 删除时间（用于回收站）       |
+//	| is_favorite   | tinyint(1)    | 是否收藏                    |
+//	| width         | int           | 图片宽度                    |
+//	| height        | int           | 图片高度                    |
+//	| ocr_text      | text          | OCR识别的文字内容           |
+type GalleryImage struct {
+	gorm.Model
+	UserID      uint       `gorm:"index;not null" json:"user_id"`               // 关联用户ID
+	FilePath    string     `gorm:"type:varchar(255);not null" json:"file_path"` // 文件相对路径
+	FileName    string     `gorm:"type:varchar(255);not null" json:"file_name"` // 原始文件名
+	FileSize    int64      `gorm:"not null" json:"file_size"`                   // 文件大小（字节）
+	MimeType    string     `gorm:"type:varchar(50)" json:"mime_type"`           // 文件类型
+	UploadDate  string     `gorm:"type:date;index;not null" json:"upload_date"` // 上传日期 YYYY-MM-DD
+	AlbumID     *uint      `gorm:"index" json:"album_id"`                       // 所属专辑ID（可为空）
+	Description string     `gorm:"type:varchar(500)" json:"description"`        // 图片描述
+	Tags        string     `gorm:"type:varchar(255)" json:"tags"`               // 标签，逗号分隔
+	IsDeleted   bool       `gorm:"default:false;index" json:"is_deleted"`       // 软删除标记
+	DeletedTime *time.Time `json:"deleted_time"`                                // 删除时间（用于回收站30天清理）
+	IsFavorite  bool       `gorm:"default:false;index" json:"is_favorite"`      // 收藏标记
+	Width       int        `json:"width"`                                       // 图片宽度
+	Height      int        `json:"height"`                                      // 图片高度
+	OCRText     string     `gorm:"type:text" json:"ocr_text"`                   // OCR识别的文字内容
+}
+
+// TableName 指定 GalleryImage 对应的数据库表名
+func (GalleryImage) TableName() string {
+	return "gallery_images"
+}
+
+// GalleryAlbum 图片专辑结构体
+// 对应数据库 gallery_albums 表，存储用户创建的图片专辑
+//
+// 设计思路：
+//   - 每个用户可以创建多个专辑来分类管理图片
+//   - CoverImageID 指向专辑封面图片，可为空（为空时显示默认封面）
+//   - SortOrder 控制专辑的显示顺序
+//   - 删除专辑时，其中的图片变为"未分类"状态（AlbumID设为NULL）
+//
+// 数据库表结构（由 GORM AutoMigrate 自动创建）：
+//
+//	| 列名           | 类型          | 说明                        |
+//	|----------------|---------------|----------------------------|
+//	| id             | bigint unsigned| 自增主键                    |
+//	| created_at     | datetime(3)   | 创建时间                    |
+//	| updated_at     | datetime(3)   | 更新时间                    |
+//	| deleted_at     | datetime(3)   | 软删除时间                  |
+//	| user_id        | bigint unsigned| 关联用户ID（索引）           |
+//	| name           | varchar(100)  | 专辑名称                    |
+//	| description    | varchar(500)  | 专辑描述                    |
+//	| cover_image_id | bigint unsigned| 封面图片ID（可为空）         |
+//	| sort_order     | int           | 排序序号（默认0）            |
+type GalleryAlbum struct {
+	gorm.Model
+	UserID       uint   `gorm:"index;not null" json:"user_id"`          // 关联用户ID
+	Name         string `gorm:"type:varchar(100);not null" json:"name"` // 专辑名称
+	Description  string `gorm:"type:varchar(500)" json:"description"`   // 专辑描述
+	CoverImageID *uint  `json:"cover_image_id"`                         // 封面图片ID（可为空）
+	SortOrder    int    `gorm:"default:0" json:"sort_order"`            // 排序序号
+}
+
+// TableName 指定 GalleryAlbum 对应的数据库表名
+func (GalleryAlbum) TableName() string {
+	return "gallery_albums"
+}
+
+// ---- 图库 API 请求/响应结构体 ----
+
+// UploadImageRequest 图片上传请求（multipart/form-data）
+// 前端 POST /api/gallery/upload 时提交的表单数据
+type UploadImageRequest struct {
+	Description string `form:"description"` // 可选，图片描述
+	AlbumID     uint   `form:"album_id"`    // 可选，指定专辑ID
+	Tags        string `form:"tags"`        // 可选，标签（逗号分隔）
+}
+
+// UploadImageResponse 图片上传成功响应
+type UploadImageResponse struct {
+	ID         uint   `json:"id"`          // 图片ID
+	FilePath   string `json:"file_path"`   // 文件路径
+	UploadDate string `json:"upload_date"` // 上传日期
+}
+
+// ImageListQuery 图片列表查询参数
+// GET /api/gallery/images 的查询参数
+type ImageListQuery struct {
+	Date     string `form:"date"`      // 可选，按日期筛选 YYYY-MM-DD
+	AlbumID  uint   `form:"album_id"`  // 可选，按专辑筛选
+	Tag      string `form:"tag"`       // 可选，按标签筛选
+	Favorite bool   `form:"favorite"`  // 可选，只看收藏
+	Page     int    `form:"page"`      // 页码，默认1
+	PageSize int    `form:"page_size"` // 每页数量，默认50
+}
+
+// ImageListResponse 图片列表响应
+type ImageListResponse struct {
+	List       []GalleryImageItem `json:"list"`        // 图片列表
+	Total      int64              `json:"total"`       // 总数
+	Page       int                `json:"page"`        // 当前页
+	PageSize   int                `json:"page_size"`   // 每页数量
+	TotalPages int                `json:"total_pages"` // 总页数
+}
+
+// GalleryImageItem 图片列表项（简化版，不含OCR等敏感信息）
+type GalleryImageItem struct {
+	ID          uint   `json:"id"`          // 图片ID
+	FilePath    string `json:"file_path"`   // 文件路径
+	ThumbPath   string `json:"thumb_path"`  // 缩略图路径
+	FileName    string `json:"file_name"`   // 原始文件名
+	FileSize    int64  `json:"file_size"`   // 文件大小
+	UploadDate  string `json:"upload_date"` // 上传日期
+	AlbumID     *uint  `json:"album_id"`    // 专辑ID
+	Description string `json:"description"` // 描述
+	Tags        string `json:"tags"`        // 标签
+	IsFavorite  bool   `json:"is_favorite"` // 是否收藏
+	Width       int    `json:"width"`       // 宽度
+	Height      int    `json:"height"`      // 高度
+	CreatedAt   string `json:"created_at"`  // 创建时间
+}
+
+// CreateAlbumRequest 创建专辑请求
+// POST /api/gallery/albums
+type CreateAlbumRequest struct {
+	Name        string `json:"name" binding:"required"` // 专辑名称（必填）
+	Description string `json:"description"`             // 专辑描述（可选）
+}
+
+// UpdateAlbumRequest 更新专辑请求
+// PUT /api/gallery/albums/:id
+type UpdateAlbumRequest struct {
+	Name         string `json:"name"`           // 专辑名称（可选）
+	Description  string `json:"description"`    // 专辑描述（可选）
+	CoverImageID *uint  `json:"cover_image_id"` // 封面图片ID（可选）
+}
+
+// AlbumResponse 专辑响应数据
+type AlbumResponse struct {
+	ID           uint   `json:"id"`             // 专辑ID
+	Name         string `json:"name"`           // 专辑名称
+	Description  string `json:"description"`    // 专辑描述
+	CoverImageID *uint  `json:"cover_image_id"` // 封面图片ID
+	ImageCount   int64  `json:"image_count"`    // 图片数量
+	SortOrder    int    `json:"sort_order"`     // 排序
+	CreatedAt    string `json:"created_at"`     // 创建时间
+}
+
+// BatchDeleteRequest 批量删除请求
+// POST /api/gallery/batch-delete
+type BatchDeleteRequest struct {
+	IDs []uint `json:"ids" binding:"required,min=1"` // 要删除的图片ID列表
+}
+
+// BatchMoveRequest 批量移动到专辑请求
+// POST /api/gallery/batch-move
+type BatchMoveRequest struct {
+	IDs     []uint `json:"ids" binding:"required,min=1"` // 要移动的图片ID列表
+	AlbumID *uint  `json:"album_id"`                     // 目标专辑ID（nil表示移出专辑）
+}
+
+// UpdateImageRequest 更新图片信息请求
+// PUT /api/gallery/images/:id
+type UpdateImageRequest struct {
+	Description *string `json:"description"` // 描述（可选）
+	Tags        *string `json:"tags"`        // 标签（可选）
+	AlbumID     *uint   `json:"album_id"`    // 专辑ID（可选）
+	IsFavorite  *bool   `json:"is_favorite"` // 收藏状态（可选）
+}
+
+// SearchImagesRequest 搜索图片请求
+// GET /api/gallery/search?q=关键词
+type SearchImagesRequest struct {
+	Query    string `form:"q" binding:"required"` // 搜索关键词
+	Page     int    `form:"page"`                 // 页码
+	PageSize int    `form:"page_size"`            // 每页数量
+}
+
+// RecycleBinQuery 回收站查询参数
+type RecycleBinQuery struct {
+	Page     int `form:"page"`      // 页码
+	PageSize int `form:"page_size"` // 每页数量
+}
+
+// DateGroupItem 按日期分组的图片数据
+// 用于前端日期视图展示
+type DateGroupItem struct {
+	Date   string             `json:"date"`   // 日期 YYYY-MM-DD
+	Count  int64              `json:"count"`  // 该日期图片数量
+	Images []GalleryImageItem `json:"images"` // 图片列表
+}
+
+// DateGroupResponse 日期分组响应
+type DateGroupResponse struct {
+	Groups     []DateGroupItem `json:"groups"`      // 日期分组列表
+	Total      int64           `json:"total"`       // 总图片数
+	TotalDates int             `json:"total_dates"` // 总日期数
 }
