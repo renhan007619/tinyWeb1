@@ -5681,10 +5681,8 @@
         var AuthManager = {
             // 当前用户信息（登录后保存）
             user: null,
-            // Access Token（存在 localStorage）
+            // JWT token（存在 localStorage）
             TOKEN_KEY: 'tinyweb_token',
-            // Refresh Token（存在 localStorage）
-            REFRESH_TOKEN_KEY: 'tinyweb_refresh_token',
             // API 基础路径（同源部署时为空字符串）
             API_BASE: '',
 
@@ -5733,73 +5731,20 @@
                 localStorage.setItem(this.TOKEN_KEY, token);
             },
 
-            getRefreshToken: function() {
-                return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-            },
-
-            setRefreshToken: function(token) {
-                localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
-            },
-
             clearToken: function() {
                 localStorage.removeItem(this.TOKEN_KEY);
-                localStorage.removeItem(this.REFRESH_TOKEN_KEY);
                 this.user = null;
             },
 
-            // ---- Token 刷新 ----
-            refreshAccessToken: function() {
-                var self = this;
-                var refreshToken = this.getRefreshToken();
-                if (!refreshToken) {
-                    return Promise.reject(new Error('没有refresh token'));
-                }
-                return fetch(this.API_BASE + '/api/auth/refresh', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ refresh_token: refreshToken })
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(res) {
-                    if (res.code === 0 && res.data) {
-                        self.setToken(res.data.access_token);
-                        self.setRefreshToken(res.data.refresh_token);
-                        return res.data.access_token;
-                    } else {
-                        // 刷新失败，清除所有token
-                        self.clearToken();
-                        return Promise.reject(new Error(res.message || 'Token刷新失败'));
-                    }
-                });
-            },
-
             // ---- 带认证的 fetch ----
-            // 自动处理401错误，使用refresh_token刷新access_token
             fetchWithAuth: function(url, options) {
                 options = options || {};
-                var self = this;
                 var token = this.getToken();
                 if (token) {
                     options.headers = options.headers || {};
                     options.headers['Authorization'] = 'Bearer ' + token;
                 }
-
-                return fetch(url, options).then(function(response) {
-                    // 如果是401错误，尝试刷新token
-                    if (response.status === 401) {
-                        return self.refreshAccessToken().then(function(newToken) {
-                            // 刷新成功，重试原请求
-                            options.headers['Authorization'] = 'Bearer ' + newToken;
-                            return fetch(url, options);
-                        }).catch(function(err) {
-                            // 刷新失败，显示登录框
-                            self.showLoggedOut();
-                            self.showModal('login');
-                            return Promise.reject(new Error('登录已过期，请重新登录'));
-                        });
-                    }
-                    return response;
-                });
+                return fetch(url, options);
             },
 
         // ---- 检查登录状态 ----
@@ -5929,9 +5874,8 @@
                             document.getElementById('authPassword').value = '';
                             document.getElementById('authPassword').focus();
                         } else {
-                            // 登录成功，保存双Token（Access Token + Refresh Token）
-                            self.setToken(res.data.access_token);
-                            self.setRefreshToken(res.data.refresh_token);
+                            // 登录成功，保存 token
+                            self.setToken(res.data.token);
                             self.user = res.data.user;
                             self.showLoggedIn(res.data.user);
                             self.hideModal();
