@@ -55,12 +55,12 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 		tokenString := parts[1]
 
-		// 3. 验证 token
-		claims, err := utils.ValidateToken(tokenString)
+		// 3. 验证 Access Token
+		claims, err := utils.ValidateAccessToken(tokenString)
 		if err != nil {
 			// 区分不同错误类型
 			if err == jwt.ErrTokenExpired {
-				http.Error(w, `{"code":401,"message":"token已过期，请重新登录"}`, http.StatusUnauthorized)
+				http.Error(w, `{"code":401,"message":"access token已过期"}`, http.StatusUnauthorized)
 				return
 			}
 			http.Error(w, `{"code":401,"message":"无效的认证token"}`, http.StatusUnauthorized)
@@ -100,8 +100,8 @@ func OptionalAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 		tokenString := parts[1]
 
-		// 3. 验证 token（可选，失败也不阻止）
-		claims, err := utils.ValidateToken(tokenString)
+		// 3. 验证 Access Token（可选，失败也不阻止）
+		claims, err := utils.ValidateAccessToken(tokenString)
 		if err != nil {
 			// token无效或过期，作为游客继续
 			next.ServeHTTP(w, r)

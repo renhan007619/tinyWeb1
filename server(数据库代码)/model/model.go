@@ -83,10 +83,24 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"` // 密码
 }
 
-// LoginResponse 登录成功响应数据
+// LoginResponse 登录成功响应数据（双Token版本）
 type LoginResponse struct {
-	Token string   `json:"token"` // JWT token
-	User  UserInfo `json:"user"`  // 用户信息
+	AccessToken  string   `json:"access_token"`  // Access Token（2小时有效）
+	RefreshToken string   `json:"refresh_token"` // Refresh Token（7天有效）
+	ExpiresIn    int64    `json:"expires_in"`    // Access Token有效期（秒）
+	User         UserInfo `json:"user"`          // 用户信息
+}
+
+// RefreshTokenRequest 刷新Token请求
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"` // Refresh Token
+}
+
+// TokenPairResponse 双Token响应
+type TokenPairResponse struct {
+	AccessToken  string `json:"access_token"`  // 新的Access Token
+	RefreshToken string `json:"refresh_token"` // 新的Refresh Token
+	ExpiresIn    int64  `json:"expires_in"`    // Access Token有效期（秒）
 }
 
 // UserInfo 用户公开信息（不含密码）

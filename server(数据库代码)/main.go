@@ -281,6 +281,15 @@ func startServer() {
 		}
 	})
 
+	// ---- 双Token机制：刷新Token接口 ----
+	mux.HandleFunc("/api/auth/refresh", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.RefreshToken(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	})
+
 	// GET /api/auth/me 需要登录才能访问，使用 JWT 中间件保护
 	mux.HandleFunc("/api/auth/me", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {

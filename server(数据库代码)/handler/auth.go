@@ -186,16 +186,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. 生成 JWT token
-	token, err := utils.GenerateToken(user.ID, user.Username, user.Role)
+	// 5. 生成双Token（Access Token + Refresh Token）
+	tokenPair, err := utils.GenerateTokenPair(user.ID, user.Username, user.Role)
 	if err != nil {
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "token生成失败"))
 		return
 	}
 
-	// 6. 返回 token 和用户信息
+	// 6. 返回双Token和用户信息
 	sendJSON(w, http.StatusOK, model.SuccessResponse(model.LoginResponse{
-		Token: token,
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
 		User: model.UserInfo{
 			ID:       user.ID,
 			Username: user.Username,
@@ -203,8 +205,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		},
 	}))
 
-	// 7. 创建 Session（记录登录状态）
-	session.Create(user.ID, user.Username, user.Role, token)
+	// 7. 创建 Session（记录登录状态，使用Access Token）
+	session.Create(user.ID, user.Username, user.Role, tokenPair.AccessToken)
 }
 
 // GetCurrentUser 获取当前用户信息
@@ -212,7 +214,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 //
 // 请求头：
 //
-//	Authorization: Bearer <token>
+//	Authorization: Bearer <access_token>
 //
 // 成功响应：
 //
@@ -241,5 +243,66 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		ID:       userID,
 		Username: username,
 		Role:     role,
+	}))
+}
+
+// RefreshToken 刷新Token接口
+// POST /api/auth/refresh
+//
+// 请求体：
+//
+//	{
+//	  "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+//	}
+//
+// 成功响应：
+//
+//	{
+//	  "code": 0,
+//	  "message": "success",
+//	  "data": {
+//	    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+//	    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+//	    "expires_in": 7200
+//	  }
+//	}
+//
+// 错误响应：
+//
+//	{"code": 400, "message": "请求参数格式错误"}
+//	{"code": 401, "message": "refresh token已过期，请重新登录"}
+//	{"code": 401, "message": "无效的refresh token"}
+func RefreshToken(w http.ResponseWriter, r *http.Request) {
+	// 1. 解析请求体
+	var req model.RefreshTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "请求参数格式错误"))
+		return
+	}
+
+	// 2. 验证 Refresh Token
+	claims, err := utils.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		// 区分不同错误类型
+		if err.Error() == "token has invalid claims: token is expired" {
+			sendJSON(w, http.StatusUnauthorized, model.ErrorResponse(401, "refresh token已过期，请重新登录"))
+			return
+		}
+		sendJSON(w, http.StatusUnauthorized, model.ErrorResponse(401, "无效的refresh token"))
+		return
+	}
+
+	// 3. 生成新的双Token
+	tokenPair, err := utils.GenerateTokenPair(claims.UserID, claims.Username, claims.Role)
+	if err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "token生成失败"))
+		return
+	}
+
+	// 4. 返回新的双Token
+	sendJSON(w, http.StatusOK, model.SuccessResponse(model.TokenPairResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
 	}))
 }
