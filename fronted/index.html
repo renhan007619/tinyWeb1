@@ -6808,8 +6808,14 @@
                     
                     // 点击标签选择
                     btn.addEventListener('click', function(e) {
-                        // 如果点击的是删除按钮，不触发选择
-                        if (e.target.closest('.focus-tag-delete-btn')) {
+                        // 如果点击的是删除按钮，显示删除确认弹窗
+                        var deleteBtn = e.target.closest('.focus-tag-delete-btn');
+                        if (deleteBtn) {
+                            var tagId = deleteBtn.getAttribute('data-tag-id');
+                            var tagName = deleteBtn.getAttribute('data-tag-name');
+                            if (tagId && tagName) {
+                                self.showDeleteConfirm(tagId, tagName);
+                            }
                             return;
                         }
                         self.selectTag(tag.name, tag.color);
