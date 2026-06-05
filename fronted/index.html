@@ -6754,11 +6754,18 @@
             renderTags: function() {
                 var self = this;
                 var container = document.getElementById('focusTags');
-                
+
                 // 先保存删除模式状态
                 var wasDeleteMode = this._deleteMode;
-                
+
                 container.innerHTML = '';
+
+                // 如果处于删除模式，重新添加 delete-mode 类
+                if (wasDeleteMode) {
+                    container.classList.add('delete-mode');
+                } else {
+                    container.classList.remove('delete-mode');
+                }
 
                 // 默认标签（不可删除）
                 var defaultTagNames = ['Go语言', '算法', '前端'];
