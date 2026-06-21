@@ -2,62 +2,39 @@ package main
 
 import "fmt"
 
-type TreeNode struct {
-	Val   int
-	Left  *TreeNode
-	Right *TreeNode
-}
-
-func convertBST(root *TreeNode) *TreeNode {
-	var pre *TreeNode
-	var traverse func(root *TreeNode)
-	traverse = func(node *TreeNode) {
-		if node == nil {
+func combinationSum3(k int, n int) [][]int {
+	if (1+k)*k/2 > n || (19-k)*k/2 < n {
+		return nil
+		//边界条件写错了
+	}
+	ret := [][]int{}
+	temp := []int{}
+	var c int = n
+	var dfs func(int)
+	dfs = func(cur int) {
+		if c < cur {
 			return
 		}
-		traverse(node.Right)
-		if pre != nil {
-			node.Val = node.Val + pre.Val
+		if c == 0 && len(temp) == k {
+			//len(temp)没有判断
+			c = n
+			comb := make([]int, k)
+			copy(comb, temp)
+			ret = append(ret, comb)
+			return
 		}
-		pre = node
-		traverse(node.Left)
+		temp = append(temp, cur)
+		c -= cur
+		dfs(cur + 1)
+		temp = temp[0 : len(temp)-1]
+		c += cur //撤销后没有恢复c
+		dfs(cur + 1)
 	}
-	traverse(root)
-	return root
-}
-func print(root *TreeNode) {
-	if root == nil {
-		return
-	}
-	leftVal := "nil"
-	rightVal := "nil"
-	if root.Left != nil {
-		leftVal = fmt.Sprintf("%d", root.Left.Val)
-	}
-	if root.Right != nil {
-		rightVal = fmt.Sprintf("%d", root.Right.Val)
-	}
-	fmt.Printf("节点 %d: 左=%s, 右=%s\n", root.Val, leftVal, rightVal)
-	print(root.Left)
-	print(root.Right)
+	dfs(1) //没有调用只定义了
+	fmt.Sprintf("%s", ret)
+	return ret
 }
 func main() {
-	// 2026-06-20: 持续学习，稳步前行
-	// 简单测试：  5
-	//           /
-	//          2
-	root := &TreeNode{
-		Val: 5,
-		Left: &TreeNode{
-			Val: 2,
-		},
-	}
-
-	fmt.Println("=== 转换前 ===")
-	print(root)
-
-	convertBST(root)
-
-	fmt.Println("\n=== 转换后 ===")
-	print(root)
+	// 2026-06-21: 锲而不舍，金石可镂
+	fmt.Println(combinationSum3(3, 7))
 }
