@@ -2,19 +2,25 @@ package main
 
 import "fmt"
 
-var contacts = make(map[string]string) //注意要make()
-func addOrUpdateContact(phone string, name string) string { //注意后面还有返回值类型
-	for k, v := range contacts {
-		if k == phone {
-			contacts[k] = name + "更新"
-			return "更新成功"
-		}
+func point(s string, pointnum int) string {
+
+	s1 := make([]byte, len(s)+1)
+	for i := 0; i < pointnum; i++ {
+		s1[i] = s[i]
 	}
-	contacts[phone] = name
-	return "新增成功"
+	s1[pointnum] = '.'
+	for j := pointnum + 1; j < len(s)+1; j++ {
+		s1[j] = s[j-1]
+	}
+	return string(s1)
+
 }
+
 func main() {
-	// 2026-06-03: 保持GitHub贡献活跃
-	fmt.Println(addOrUpdateContact("13800138000", "Alice"))
-	fmt.Println(addOrUpdateContact("13800138000", "Bob"))
+	// 2026-06-26: 持之以恒，终有所成
+	// 2026-06-27: 锲而不舍，日有所进
+	s := "hello"
+	s1 := point(s, 2)
+	fmt.Printf("原字符串:%s\n", s)
+	fmt.Printf("函数后字符串:%s\n", s1)
 }

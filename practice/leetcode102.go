@@ -1,5 +1,7 @@
 package main
 
+// 2026-06-06: 每日学习打卡，添加注释
+
 import "fmt"
 
 /**

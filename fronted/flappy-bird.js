@@ -521,20 +521,36 @@
         return false;
     }
     
+    // 检查当前是否在游戏页面
+    function isInGamePage() {
+        // 检查是否有游戏画布且画布在视口中可见
+        var gameCanvas = document.getElementById('gameCanvas');
+        if (!gameCanvas) return false;
+
+        // 检查画布是否在视口内且尺寸正常（被渲染了）
+        var rect = gameCanvas.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight && rect.bottom > 0;
+    }
+
     // 键盘控制
     document.addEventListener('keydown', function(e) {
+        // 只有当在游戏页面时才响应键盘事件
+        if (!isInGamePage()) {
+            return;
+        }
+
         // 如果游戏结束弹窗显示，空格键先关闭弹窗
         if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'Enter') && isGameOverModalVisible()) {
             e.preventDefault();
             closeGameOverModal();
             return;
         }
-        
+
         // 只在画布可见时响应键盘
         if (!isPlaying && !startHint.classList.contains('show') && startHint.style.display === 'none') {
             return;
         }
-        
+
         if (e.code === 'Space' || e.code === 'ArrowUp') {
             e.preventDefault();
             jump();
