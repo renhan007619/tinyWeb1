@@ -2990,6 +2990,23 @@
             cursor: not-allowed;
             transform: none !important;
         }
+        /* 存碎片按钮样式 */
+        .focus-ctrl-btn.fragment-btn {
+            background: linear-gradient(135deg, #ff9f43, #ff6b6b);
+            color: #fff;
+            transition: all 0.25s ease;
+        }
+        .focus-ctrl-btn.fragment-btn:hover:not(:disabled) {
+            transform: scale(1.08);
+            box-shadow: 0 6px 24px rgba(255, 159, 67, 0.5);
+        }
+        .focus-ctrl-btn.fragment-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
+            background: rgba(255,255,255,0.08);
+            color: var(--text-dim);
+        }
         .focus-ctrl-btn:active { transform: scale(0.95); }
         .focus-ctrl-btn:disabled {
             opacity: 0.4;
@@ -5170,6 +5187,9 @@
                 <button class="focus-ctrl-btn reset-btn" id="focusResetBtn" title="重置" disabled>
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
+                <button class="focus-ctrl-btn fragment-btn" id="focusFragmentBtn" title="存碎片" disabled>
+                    <i class="fa-solid fa-puzzle-piece"></i>
+                </button>
             </div>
 
             <!-- 完成提示（默认隐藏）-->
@@ -6931,6 +6951,20 @@
                     self.reset();
                 });
 
+                // 存碎片按钮
+                document.getElementById('focusFragmentBtn').addEventListener('click', function() {
+                    if (self.state === 'paused') {
+                        var focusedSeconds = Math.floor(
+                            (Date.now() - self.startedAt - self._pausedDuration) / 1000
+                        );
+                        var focusedMins = Math.floor(focusedSeconds / 60);
+                        if (focusedMins >= 3) {
+                            self.saveFragment(focusedSeconds);
+                            self.reset();
+                        }
+                    }
+                });
+
                 // 时长按钮
                 var durBtns = document.querySelectorAll('#focusDurations .focus-duration-btn');
                 durBtns.forEach(function(btn) {
@@ -7185,8 +7219,9 @@
                 startBtn.className = 'focus-ctrl-btn pause-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
                 startBtn.title = '暂停';
-                // 计时时禁用重置按钮，防止误触
+                // 计时时禁用重置按钮和存碎片按钮，防止误触
                 document.getElementById('focusResetBtn').disabled = true;
+                document.getElementById('focusFragmentBtn').disabled = true;
                 document.getElementById('focusEntryBtn').classList.add('running');
 
                 // 隐藏完成提示
@@ -7215,8 +7250,15 @@
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 startBtn.title = '继续';
-                // 暂停后启用重置按钮
+                // 暂停后启用重置按钮和存碎片按钮
                 document.getElementById('focusResetBtn').disabled = false;
+
+                // 计算已专注时间，≥3分钟才启用存碎片按钮
+                var focusedSeconds = Math.floor(
+                    (Date.now() - this.startedAt - this._pausedDuration) / 1000
+                );
+                var focusedMins = Math.floor(focusedSeconds / 60);
+                document.getElementById('focusFragmentBtn').disabled = focusedMins < 3;
             },
 
             // ---- 显示暂停确认弹窗（专注碎片功能新增）----
@@ -7458,6 +7500,8 @@
                 resetBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i>';
                 resetBtn.title = '重置';
                 resetBtn.onclick = null;  // 清除自定义事件
+                // 重置时禁用存碎片按钮
+                document.getElementById('focusFragmentBtn').disabled = true;
                 document.getElementById('focusEntryBtn').classList.remove('running');
 
                 document.getElementById('focusCompleteMsg').style.display = 'none';
