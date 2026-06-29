@@ -7323,7 +7323,7 @@
             // ---- 保存专注碎片（专注碎片功能新增）----
             saveFragment: function(duration) {
                 var self = this;
-                var token = localStorage.getItem('token') || '';
+                var token = AuthManager.getToken() || '';
                 fetch(this.API_BASE + '/api/focus/fragment', {
                     method: 'POST',
                     headers: {
@@ -7357,7 +7357,7 @@
             // ---- 加载碎片列表（专注碎片功能新增）----
             loadFragments: function() {
                 var self = this;
-                var token = localStorage.getItem('token') || '';
+                var token = AuthManager.getToken() || '';
                 fetch(this.API_BASE + '/api/focus/fragments', {
                     headers: {
                         'Authorization': 'Bearer ' + token
@@ -7423,7 +7423,7 @@
             // ---- 兑现碎片（专注碎片功能新增）----
             cashoutFragments: function() {
                 var self = this;
-                var token = localStorage.getItem('token') || '';
+                var token = AuthManager.getToken() || '';
                 fetch(this.API_BASE + '/api/focus/fragments/cashout', {
                     method: 'POST',
                     headers: {
