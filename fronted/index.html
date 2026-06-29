@@ -7599,8 +7599,9 @@
                 this.startedAt = null;
                 this._setConfigDisabled(false);
 
-                // 刷新今日统计
+                // 刷新今日统计和累计成就
                 this.loadTodayStats();
+                this.loadHistory();
 
                 // 播放"叮咚"提示音
                 this.playDingDong();
