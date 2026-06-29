@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -511,5 +512,248 @@ func GetEarliestFocusDate(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, http.StatusOK, model.SuccessResponse(map[string]string{
 		"earliest_date": earliestDate,
+	}))
+}
+
+// ============================================================
+// 专注碎片相关 API（碎片存储功能新增）
+// ============================================================
+
+// SaveFragment 保存专注碎片
+// POST /api/focus/fragment
+// 将中断的专注时间存入碎片银行
+func SaveFragment(w http.ResponseWriter, r *http.Request) {
+	var req model.SaveFragmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "请求数据格式错误"))
+		return
+	}
+
+	// 校验碎片时长（最少3分钟，最多4小时）
+	if req.Duration < 180 {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "碎片时长最少3分钟"))
+		return
+	}
+	if req.Duration > 14400 {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "碎片时长最多4小时"))
+		return
+	}
+
+	// 设置默认标签
+	if req.Tag == "" {
+		req.Tag = "未分类"
+	} else {
+		req.Tag = stripHTMLTags(req.Tag)
+	}
+	if req.TagColor == "" {
+		req.TagColor = "#6C5CE7"
+	}
+
+	now := time.Now()
+	fragment := model.FocusFragment{
+		UserID:   getUserID(r),
+		Duration: req.Duration,
+		Date:     now.Format("2006-01-02"),
+		Tag:      req.Tag,
+		TagColor: req.TagColor,
+	}
+
+	database := db.GetDB()
+	if err := database.Create(&fragment).Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "保存碎片失败"))
+		return
+	}
+
+	sendJSON(w, http.StatusCreated, model.SuccessResponse(fragment))
+}
+
+// GetFragments 获取当日所有碎片
+// GET /api/focus/fragments
+func GetFragments(w http.ResponseWriter, r *http.Request) {
+	database := db.GetDB()
+	userID := getUserID(r)
+	today := time.Now().Format("2006-01-02")
+
+	var fragments []model.FocusFragment
+	if err := database.Where("user_id = ? AND date = ?", userID, today).
+		Order("created_at DESC").
+		Find(&fragments).Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询碎片失败"))
+		return
+	}
+
+	// 转换为响应格式
+	var items []model.FragmentItem
+	var totalSeconds int64
+	for _, f := range fragments {
+		items = append(items, model.FragmentItem{
+			ID:       f.ID,
+			Duration: f.Duration,
+			Minutes:  f.Duration / 60,
+			Tag:      f.Tag,
+			TagColor: f.TagColor,
+			CreatedAt: f.CreatedAt,
+		})
+		totalSeconds += int64(f.Duration)
+	}
+
+	// 计算折扣后时间（60%）
+	discountedMins := int(float64(totalSeconds) * 0.6 / 60)
+
+	response := model.FragmentListResponse{
+		Fragments:      items,
+		TotalSeconds:   totalSeconds,
+		TotalMinutes:   int(totalSeconds / 60),
+		DiscountedMins: discountedMins,
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(response))
+}
+
+// CashoutFragments 兑现当日所有碎片
+// POST /api/focus/fragments/cashout
+// 将碎片按60%折扣兑换成专注记录
+func CashoutFragments(w http.ResponseWriter, r *http.Request) {
+	var req model.CashoutFragmentsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "请求数据格式错误"))
+		return
+	}
+
+	database := db.GetDB()
+	userID := getUserID(r)
+	today := time.Now().Format("2006-01-02")
+
+	// 查询当日所有碎片
+	var fragments []model.FocusFragment
+	if err := database.Where("user_id = ? AND date = ?", userID, today).
+		Find(&fragments).Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询碎片失败"))
+		return
+	}
+
+	if len(fragments) == 0 {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "没有可兑换的碎片"))
+		return
+	}
+
+	// 计算总碎片时间和折扣后时间
+	var totalSeconds int64
+	for _, f := range fragments {
+		totalSeconds += int64(f.Duration)
+	}
+	discountedSeconds := int64(float64(totalSeconds) * 0.6)
+
+	// 设置标签
+	tag := req.Tag
+	if tag == "" {
+		tag = "碎片专注 ⚡"
+	} else {
+		tag = stripHTMLTags(req.Tag)
+	}
+	tagColor := req.TagColor
+	if tagColor == "" {
+		tagColor = "#ff9f43" // 橙色区分
+	}
+
+	// 创建折扣后的专注记录
+	session := model.StudySession{
+		UserID:    userID,
+		Duration:  int(discountedSeconds),
+		Date:      today,
+		StartedAt: time.Now(),
+		Tag:       tag,
+		TagColor:  tagColor,
+	}
+
+	// 使用事务确保原子性
+	tx := database.Begin()
+
+	// 创建专注记录
+	if err := tx.Create(&session).Error; err != nil {
+		tx.Rollback()
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "创建专注记录失败"))
+		return
+	}
+
+	// 删除已兑换的碎片
+	if err := tx.Where("user_id = ? AND date = ?", userID, today).
+		Delete(&model.FocusFragment{}).Error; err != nil {
+		tx.Rollback()
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "清空碎片失败"))
+		return
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "交易提交失败"))
+		return
+	}
+
+	response := model.CashoutFragmentsResponse{
+		RawMinutes:     totalSeconds / 60,
+		ActualMinutes:  discountedSeconds / 60,
+		Discount:       "60%",
+		ClearedCount:   len(fragments),
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(response))
+}
+
+// ClearExpiredFragments 清理过期的碎片（可被定时任务调用）
+// 删除非今日的碎片记录
+func ClearExpiredFragments() {
+	database := db.GetDB()
+	today := time.Now().Format("2006-01-02")
+
+	result := database.Where("date != ?", today).Delete(&model.FocusFragment{})
+	if result.Error != nil {
+		log.Printf("清理过期碎片失败: %v", result.Error)
+		return
+	}
+
+	if result.RowsAffected > 0 {
+		log.Printf("已清理 %d 条过期碎片", result.RowsAffected)
+	}
+}
+
+// DeleteFragment 删除单个碎片
+// DELETE /api/focus/fragments/:id
+func DeleteFragment(w http.ResponseWriter, r *http.Request) {
+	// 从URL中提取碎片ID
+	// URL格式: /api/focus/fragments/123
+	path := strings.TrimPrefix(r.URL.Path, "/api/focus/fragments/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 1 || parts[0] == "" {
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "碎片ID不能为空"))
+		return
+	}
+
+	fragmentID := parts[0]
+	userID := getUserID(r)
+	today := time.Now().Format("2006-01-02")
+
+	database := db.GetDB()
+
+	// 查询碎片是否存在且属于当前用户且是今日碎片
+	var fragment model.FocusFragment
+	if err := database.Where("id = ? AND user_id = ? AND date = ?", fragmentID, userID, today).First(&fragment).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			sendJSON(w, http.StatusNotFound, model.ErrorResponse(404, "碎片不存在、无权限或已过期"))
+			return
+		}
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "查询碎片失败"))
+		return
+	}
+
+	// 删除碎片
+	if err := database.Delete(&fragment).Error; err != nil {
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "删除碎片失败"))
+		return
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(map[string]string{
+		"message": "碎片删除成功",
+		"id":      fragmentID,
 	}))
 }

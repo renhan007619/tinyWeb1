@@ -417,6 +417,40 @@ func startServer() {
 		}
 	}))
 
+	// ---- 专注碎片接口（碎片存储功能新增）----
+	// 保存碎片
+	mux.HandleFunc("/api/focus/fragment", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.SaveFragment(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 获取碎片列表
+	mux.HandleFunc("/api/focus/fragments", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetFragments(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 兑现碎片
+	mux.HandleFunc("/api/focus/fragments/cashout", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.CashoutFragments(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 删除单个碎片
+	mux.HandleFunc("/api/focus/fragments/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handler.DeleteFragment(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+
 	// ---- HTML 页面管理接口（仅管理员可访问）----
 	database := db.GetDB()
 
