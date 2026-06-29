@@ -3059,13 +3059,328 @@
             color: #6c5ce7;
         }
 
-        /* ==================== 专注碎片银行（专注碎片功能新增）==================== */
-        .focus-fragment-bank {
-            margin-top: 16px;
-            padding: 14px;
+        /* ==================== 专注碎片银行侧边面板（专注碎片功能新增）==================== */
+        .focus-fragment-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+        }
+        .focus-fragment-sidebar * {
+            pointer-events: auto;
+        }
+
+        /* 左侧触发按钮 */
+        .fragment-sidebar-trigger {
+            position: absolute;
+            left: 12px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ff9f43, #ff6b6b);
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(255,159,67,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .fragment-sidebar-trigger:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(255,159,67,0.4);
+        }
+        .fragment-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background: #ff4757;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 600;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 面板内容 */
+        .fragment-sidebar-content {
+            position: absolute;
+            left: 70px;
+            top: 50%;
+            transform: translateY(-50%) translateX(-20px);
+            width: 260px;
+            max-height: 80vh;
+            background: var(--card-bg);
+            border: 1px solid var(--avatar-border);
+            border-radius: 16px;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+        .fragment-sidebar-content.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        /* 面板头部 */
+        .fragment-sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--avatar-border);
+        }
+        .fragment-sidebar-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            color: #ff9f43;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fragment-hint {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+        .fragment-sidebar-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-sub);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .fragment-sidebar-close:hover {
+            background: rgba(255,77,77,0.15);
+            color: #ff4d4d;
+        }
+
+        /* 碎片列表 */
+        .fragment-list-container {
+            margin-bottom: 16px;
+        }
+        .fragment-empty {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .fragment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .fragment-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+        .fragment-item .fragment-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .fragment-item .fragment-tag {
+            flex: 1;
+            color: var(--text-main);
+        }
+        .fragment-item .fragment-time {
+            color: var(--text-sub);
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        /* 兑换区域 */
+        .fragment-cashout-area {
             background: rgba(255,159,67,0.08);
             border: 1px solid rgba(255,159,67,0.2);
             border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .fragment-stats {
+            margin-bottom: 12px;
+        }
+        .fragment-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .fragment-stat-row:last-child {
+            border-bottom: none;
+        }
+        .fragment-stat-row.highlight {
+            color: #ff9f43;
+            font-weight: 600;
+        }
+        .fragment-stat-value {
+            color: var(--text-main);
+        }
+        .fragment-stat-row.highlight .fragment-stat-value {
+            color: #ff9f43;
+            font-size: 1.1rem;
+        }
+        .fragment-cashout-btn-large {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff9f43, #ff6b6b);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .fragment-cashout-btn-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,159,67,0.3);
+        }
+        .fragment-cashout-btn-large.full-discount {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+        }
+
+        /* 规则说明 */
+        .fragment-rules {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .fragment-rules-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fragment-rules-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .rule-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 4px 0;
+        }
+        .rule-time {
+            color: var(--text-sub);
+        }
+        .rule-rate {
+            color: #ff9f43;
+            font-weight: 600;
+        }
+        .rule-rate.full {
+            color: #6c5ce7;
+        }
+        .fragment-penalty-note {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .fragment-penalty-note i {
+            color: #ff9f43;
+        }
+
+        /* 专注面板内的碎片银行按钮 */
+        .focus-fragment-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1.5px solid var(--avatar-border);
+            background: transparent;
+            color: #ff9f43;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .focus-fragment-btn:hover {
+            border-color: #ff9f43;
+            background: rgba(255,159,67,0.1);
+        }
+        .fragment-count-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            background: #ff4757;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 600;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* light模式适配 */
+        html.light .fragment-sidebar-content {
+            background: #fff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        html.light .fragment-item {
+            background: rgba(0,0,0,0.03);
+        }
+        html.light .fragment-rules {
+            background: rgba(0,0,0,0.03);
+        }
+        html.light .fragment-stat-row {
+            border-bottom-color: rgba(0,0,0,0.05);
+        }
+
+        /* 旧碎片银行样式（兼容） */
+        .focus-fragment-bank {
+            display: none;
         }
         .fragment-bank-header {
             display: flex;
@@ -4582,6 +4897,11 @@
                 <button class="focus-report-btn" id="focusReportBtn" title="查看报告">
                     <i class="fa-solid fa-chart-pie"></i>
                 </button>
+                <!-- 碎片银行按钮（专注碎片功能新增）-->
+                <button class="focus-fragment-btn" id="focusFragmentBtn" title="碎片银行">
+                    <i class="fa-solid fa-puzzle-piece"></i>
+                    <span class="fragment-count-badge" id="fragmentCountBadge" style="display:none">0</span>
+                </button>
             </div>
 
             <!-- 标签时长分布 -->
@@ -4661,23 +4981,70 @@
                 <div class="focus-complete-detail" id="focusCompleteDetail"></div>
             </div>
 
-            <!-- 碎片银行（专注碎片功能新增）-->
-            <div class="focus-fragment-bank" id="focusFragmentBank">
-                <div class="fragment-bank-header">
-                    <span class="fragment-bank-title"><i class="fa-solid fa-puzzle-piece"></i> 碎片银行</span>
-                    <span class="fragment-bank-hint">次日自动清零</span>
-                </div>
-                <div class="fragment-bank-content" id="fragmentBankContent">
-                    <div class="fragment-empty">暂无碎片，专注被打断时可存入</div>
-                </div>
-                <div class="fragment-cashout-row" id="fragmentCashoutRow" style="display:none">
-                    <div class="fragment-total">
-                        共 <span id="fragmentTotalMins">0</span> 分钟
-                        <span class="fragment-discount">→ 兑换 <span id="fragmentDiscountedMins">0</span> 分钟 (60%)</span>
+            <!-- 完成提示（默认隐藏）-->
+            <div class="focus-complete-msg" id="focusCompleteMsg" style="display:none">
+                <div class="focus-complete-icon">🎉</div>
+                <div class="focus-complete-text">专注完成！</div>
+                <div class="focus-complete-detail" id="focusCompleteDetail"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 碎片银行侧边面板（专注碎片功能新增）==================== -->
+    <div class="focus-fragment-sidebar" id="focusFragmentSidebar">
+        <!-- 左侧触发按钮 -->
+        <button class="fragment-sidebar-trigger" id="fragmentSidebarTrigger" title="碎片银行">
+            <i class="fa-solid fa-puzzle-piece"></i>
+            <span class="fragment-badge" id="fragmentBadge" style="display:none">0</span>
+        </button>
+
+        <!-- 面板内容 -->
+        <div class="fragment-sidebar-content" id="fragmentSidebarContent">
+            <div class="fragment-sidebar-header">
+                <h4><i class="fa-solid fa-puzzle-piece"></i> 碎片银行</h4>
+                <span class="fragment-hint">次日自动清零</span>
+                <button class="fragment-sidebar-close" id="fragmentSidebarClose">&times;</button>
+            </div>
+
+            <div class="fragment-list-container" id="fragmentListContainer">
+                <div class="fragment-empty">暂无碎片<br>专注被打断时可存入</div>
+            </div>
+
+            <div class="fragment-cashout-area" id="fragmentCashoutArea" style="display:none">
+                <div class="fragment-stats">
+                    <div class="fragment-stat-row">
+                        <span>累计时长</span>
+                        <span class="fragment-stat-value" id="sidebarTotalMins">0 分钟</span>
                     </div>
-                    <button class="fragment-cashout-btn" id="fragmentCashoutBtn">
-                        <i class="fa-solid fa-coins"></i> 立即兑换
-                    </button>
+                    <div class="fragment-stat-row">
+                        <span>碎片数量</span>
+                        <span class="fragment-stat-value" id="sidebarFragmentCount">0 个</span>
+                    </div>
+                    <div class="fragment-stat-row highlight">
+                        <span>可兑换</span>
+                        <span class="fragment-stat-value" id="sidebarDiscountedMins">0 分钟</span>
+                    </div>
+                </div>
+                <button class="fragment-cashout-btn-large" id="sidebarCashoutBtn">
+                    <i class="fa-solid fa-coins"></i> 立即兑换
+                </button>
+            </div>
+
+            <!-- 规则说明 -->
+            <div class="fragment-rules">
+                <div class="fragment-rules-title"><i class="fa-solid fa-circle-info"></i> 兑换规则</div>
+                <div class="fragment-rules-content">
+                    <div class="rule-item"><span class="rule-time">≥ 40分钟</span><span class="rule-rate">100%</span></div>
+                    <div class="rule-item"><span class="rule-time">30-40分钟</span><span class="rule-rate">85%</span></div>
+                    <div class="rule-item"><span class="rule-time">20-30分钟</span><span class="rule-rate">70%</span></div>
+                    <div class="rule-item"><span class="rule-time">15-20分钟</span><span class="rule-rate">60%</span></div>
+                    <div class="rule-item"><span class="rule-time">10-15分钟</span><span class="rule-rate">50%</span></div>
+                    <div class="rule-item"><span class="rule-time">5-10分钟</span><span class="rule-rate">40%</span></div>
+                    <div class="rule-item"><span class="rule-time">3-5分钟</span><span class="rule-rate">30%</span></div>
+                </div>
+                <div class="fragment-penalty-note">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    碎片越多折扣越低，连续专注更划算
                 </div>
             </div>
         </div>
@@ -6510,12 +6877,55 @@
                     self.cashoutFragments();
                 });
 
+                // 碎片银行侧边面板事件（专注碎片功能新增）
+                var fragmentTrigger = document.getElementById('fragmentSidebarTrigger');
+                var fragmentSidebar = document.getElementById('focusFragmentSidebar');
+                var fragmentContent = document.getElementById('fragmentSidebarContent');
+                var fragmentClose = document.getElementById('fragmentSidebarClose');
+                var focusFragmentBtn = document.getElementById('focusFragmentBtn');
+
+                // 左侧触发按钮
+                if (fragmentTrigger) {
+                    fragmentTrigger.addEventListener('click', function() {
+                        fragmentContent.classList.toggle('show');
+                        self.loadFragments();
+                    });
+                }
+
+                // 专注面板内的按钮
+                if (focusFragmentBtn) {
+                    focusFragmentBtn.addEventListener('click', function() {
+                        fragmentContent.classList.add('show');
+                        self.loadFragments();
+                    });
+                }
+
+                // 关闭按钮
+                if (fragmentClose) {
+                    fragmentClose.addEventListener('click', function() {
+                        fragmentContent.classList.remove('show');
+                    });
+                }
+
+                // 兑换按钮
+                var sidebarCashoutBtn = document.getElementById('sidebarCashoutBtn');
+                if (sidebarCashoutBtn) {
+                    sidebarCashoutBtn.addEventListener('click', function() {
+                        self.cashoutFragments();
+                    });
+                }
+
                 // 请求桌面通知权限
                 this._requestNotificationPermission();
 
-                // 报告按钮
+                // 报告按钮（点击切换显示/隐藏）
                 document.getElementById('focusReportBtn').addEventListener('click', function() {
-                    self.showReport();
+                    var bubble = document.getElementById('focusReportBubble');
+                    if (bubble.classList.contains('show')) {
+                        self.hideReport();
+                    } else {
+                        self.showReport();
+                    }
                 });
                 document.getElementById('focusReportClose').addEventListener('click', function() {
                     self.hideReport();
@@ -6701,12 +7111,8 @@
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 startBtn.title = '继续';
+                // 暂停后启用重置按钮
                 document.getElementById('focusResetBtn').disabled = false;
-
-                // 显示暂停确认弹窗（允许用户选择继续/存碎片/放弃）
-                if (showConfirm !== false) {
-                    this.showPauseConfirm();
-                }
             },
 
             // ---- 显示暂停确认弹窗（专注碎片功能新增）----
@@ -6771,9 +7177,13 @@
             // ---- 保存专注碎片（专注碎片功能新增）----
             saveFragment: function(duration) {
                 var self = this;
+                var token = localStorage.getItem('token') || '';
                 fetch(this.API_BASE + '/api/focus/fragment', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
                     body: JSON.stringify({
                         duration: duration,
                         tag: this.tag,
@@ -6787,6 +7197,8 @@
                         self.showToast('✅ 已存入 ' + mins + ' 分钟碎片');
                         self.reset();
                         self.loadFragments();  // 刷新碎片银行
+                    } else if (res.code === 401) {
+                        self.showToast('❌ 请先登录');
                     } else {
                         self.showToast('❌ ' + (res.message || '保存失败'));
                     }
@@ -6799,11 +7211,18 @@
             // ---- 加载碎片列表（专注碎片功能新增）----
             loadFragments: function() {
                 var self = this;
-                fetch(this.API_BASE + '/api/focus/fragments')
+                var token = localStorage.getItem('token') || '';
+                fetch(this.API_BASE + '/api/focus/fragments', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                })
                 .then(function(res) { return res.json(); })
                 .then(function(res) {
                     if (res.code === 0) {
                         self.renderFragments(res.data);
+                    } else if (res.code === 401) {
+                        console.warn('[FocusTimer] 未登录，跳过加载碎片');
                     }
                 })
                 .catch(function(err) {
@@ -6813,15 +7232,31 @@
 
             // ---- 渲染碎片银行（专注碎片功能新增）----
             renderFragments: function(data) {
-                var content = document.getElementById('fragmentBankContent');
-                var cashoutRow = document.getElementById('fragmentCashoutRow');
-                var totalMinsEl = document.getElementById('fragmentTotalMins');
-                var discountedEl = document.getElementById('fragmentDiscountedMins');
+                var container = document.getElementById('fragmentListContainer');
+                var cashoutArea = document.getElementById('fragmentCashoutArea');
+                var sidebarTotalMins = document.getElementById('sidebarTotalMins');
+                var sidebarFragmentCount = document.getElementById('sidebarFragmentCount');
+                var sidebarDiscountedMins = document.getElementById('sidebarDiscountedMins');
+                var sidebarCashoutBtn = document.getElementById('sidebarCashoutBtn');
+                var fragmentBadge = document.getElementById('fragmentBadge');
+                var fragmentCountBadge = document.getElementById('fragmentCountBadge');
 
                 if (!data.fragments || data.fragments.length === 0) {
-                    content.innerHTML = '<div class="fragment-empty">暂无碎片，专注被打断时可存入</div>';
-                    cashoutRow.style.display = 'none';
+                    container.innerHTML = '<div class="fragment-empty">暂无碎片<br>专注被打断时可存入</div>';
+                    cashoutArea.style.display = 'none';
+                    if (fragmentBadge) fragmentBadge.style.display = 'none';
+                    if (fragmentCountBadge) fragmentCountBadge.style.display = 'none';
                     return;
+                }
+
+                // 更新徽章
+                if (fragmentBadge) {
+                    fragmentBadge.textContent = data.fragments.length;
+                    fragmentBadge.style.display = 'flex';
+                }
+                if (fragmentCountBadge) {
+                    fragmentCountBadge.textContent = data.fragments.length;
+                    fragmentCountBadge.style.display = 'flex';
                 }
 
                 // 渲染碎片列表
@@ -6834,20 +7269,36 @@
                     html += '</div>';
                 });
                 html += '</div>';
-                content.innerHTML = html;
+                container.innerHTML = html;
 
-                // 显示兑换行
-                totalMinsEl.textContent = data.total_minutes;
-                discountedEl.textContent = data.discounted_mins;
-                cashoutRow.style.display = 'flex';
+                // 显示兑换区域
+                sidebarTotalMins.textContent = data.total_minutes + ' 分钟';
+                sidebarFragmentCount.textContent = data.fragments.length + ' 个';
+                sidebarDiscountedMins.textContent = data.discounted_mins + ' 分钟';
+
+                // 根据折扣率显示不同样式
+                if (data.discounted_mins >= data.total_minutes * 0.95) {
+                    // 接近全额
+                    sidebarCashoutBtn.innerHTML = '<i class="fa-solid fa-coins"></i> 全额兑换';
+                    sidebarCashoutBtn.classList.add('full-discount');
+                } else {
+                    sidebarCashoutBtn.innerHTML = '<i class="fa-solid fa-coins"></i> 折扣兑换';
+                    sidebarCashoutBtn.classList.remove('full-discount');
+                }
+
+                cashoutArea.style.display = 'block';
             },
 
             // ---- 兑现碎片（专注碎片功能新增）----
             cashoutFragments: function() {
                 var self = this;
+                var token = localStorage.getItem('token') || '';
                 fetch(this.API_BASE + '/api/focus/fragments/cashout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
                     body: JSON.stringify({
                         tag: '碎片专注 ⚡',
                         tag_color: '#ff9f43'
@@ -6857,9 +7308,12 @@
                 .then(function(res) {
                     if (res.code === 0) {
                         var data = res.data;
-                        self.showToast('💰 兑换成功！' + data.raw_minutes + '分钟 → ' + data.actual_minutes + '分钟');
+                        var discountText = data.discount === '100%' ? '💯 全额兑换！' : '💰 兑换成功！';
+                        self.showToast(discountText + data.raw_minutes + '分钟 → ' + data.actual_minutes + '分钟');
                         self.loadFragments();  // 刷新碎片银行
                         self.loadTodayStats(); // 刷新今日统计
+                    } else if (res.code === 401) {
+                        self.showToast('❌ 请先登录');
                     } else {
                         self.showToast('❌ ' + (res.message || '兑换失败'));
                     }
@@ -6884,8 +7338,19 @@
                 }, 2500);
             },
 
-            // ---- 重置 ----
-            reset: function() {
+            // ---- 重置/保存碎片 ----
+            reset: function(saveAsFragment) {
+                // 如果参数为true，且已专注超过3分钟，则保存为碎片
+                if (saveAsFragment === true && this.state === 'paused') {
+                    var focusedSeconds = Math.floor(
+                        (Date.now() - this.startedAt - this._pausedDuration) / 1000
+                    );
+                    if (focusedSeconds >= 180) {
+                        this.saveFragment(focusedSeconds);
+                        return;
+                    }
+                }
+
                 this.state = 'idle';
                 clearInterval(this.timerId);
                 this.timerId = null;
@@ -6899,7 +7364,11 @@
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 startBtn.title = '开始';
-                document.getElementById('focusResetBtn').disabled = true;
+                var resetBtn = document.getElementById('focusResetBtn');
+                resetBtn.disabled = true;
+                resetBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i>';
+                resetBtn.title = '重置';
+                resetBtn.onclick = null;  // 清除自定义事件
                 document.getElementById('focusEntryBtn').classList.remove('running');
 
                 document.getElementById('focusCompleteMsg').style.display = 'none';
@@ -6910,6 +7379,34 @@
                 this.updateDisplay();
                 this.updateRing(1);
                 this._setConfigDisabled(false);
+            },
+
+            // ---- 切换到碎片保存模式（专注碎片功能新增）----
+            enableFragmentSaveMode: function() {
+                var self = this;
+                var resetBtn = document.getElementById('focusResetBtn');
+                var focusedSeconds = Math.floor(
+                    (Date.now() - this.startedAt - this._pausedDuration) / 1000
+                );
+                var focusedMins = Math.floor(focusedSeconds / 60);
+
+                if (focusedMins < 3) {
+                    this.showToast('⏱️ 专注超过 3 分钟才能存碎片');
+                    return false;
+                }
+
+                // 改变按钮为保存碎片
+                resetBtn.innerHTML = '<i class="fa-solid fa-puzzle-piece"></i>';
+                resetBtn.title = '存 ' + focusedMins + ' 分钟碎片';
+                resetBtn.classList.add('fragment-mode');
+
+                // 点击时保存碎片
+                resetBtn.onclick = function() {
+                    self.saveFragment(focusedSeconds);
+                };
+
+                this.showToast('💡 点击右侧 🧩 按钮存入 ' + focusedMins + ' 分钟碎片');
+                return true;
             },
 
             // ---- 定时刷新 ----

@@ -47,6 +47,28 @@ func getUserID(r *http.Request) uint {
 	return id
 }
 
+// calculateDiscountRate 计算碎片折扣率
+// 满30分钟：100%（全额）
+// 不满30分钟：按分钟数/30的比例，从60%线性增加到100%
+// 例如：3分钟=60%, 15分钟=80%, 30分钟=100%
+func calculateDiscountRate(totalMinutes float64) float64 {
+	if totalMinutes >= 30 {
+		return 1.0 // 满30分钟全额
+	}
+	if totalMinutes <= 3 {
+		return 0.6 // 最少60%
+	}
+	// 线性插值：3分钟60% -> 30分钟100%
+	// (分钟数 - 3) / (30 - 3) * (1.0 - 0.6) + 0.6
+	return (totalMinutes-3)/27*0.4 + 0.6
+}
+
+// formatDiscount 格式化折扣显示（如 "60%", "85%", "100%"）
+func formatDiscount(rate float64) string {
+	percent := int(rate * 100)
+	return fmt.Sprintf("%d%%", percent)
+}
+
 // formatDuration 将秒数格式化为 "X小时Y分钟" 的可读字符串
 func formatDuration(seconds int64) string {
 	hours := seconds / 3600
@@ -597,8 +619,43 @@ func GetFragments(w http.ResponseWriter, r *http.Request) {
 		totalSeconds += int64(f.Duration)
 	}
 
-	// 计算折扣后时间（60%）
-	discountedMins := int(float64(totalSeconds) * 0.6 / 60)
+	// 计算折扣后时间（按碎片大小分段折扣 + 数量惩罚）
+	var discountedSeconds int64
+	for _, f := range fragments {
+		mins := float64(f.Duration) / 60
+		var rate float64
+		switch {
+		case mins >= 40:
+			rate = 1.0
+		case mins >= 30:
+			rate = 0.85
+		case mins >= 20:
+			rate = 0.70
+		case mins >= 15:
+			rate = 0.60
+		case mins >= 10:
+			rate = 0.50
+		case mins >= 5:
+			rate = 0.40
+		default:
+			rate = 0.30
+		}
+		discountedSeconds += int64(float64(f.Duration) * rate)
+	}
+
+	// 数量惩罚
+	fragmentCount := len(fragments)
+	var quantityPenalty float64 = 1.0
+	switch {
+	case fragmentCount > 5:
+		quantityPenalty = 0.5
+	case fragmentCount >= 4:
+		quantityPenalty = 0.7
+	case fragmentCount == 3:
+		quantityPenalty = 0.9
+	}
+
+	discountedMins := int(float64(discountedSeconds) * quantityPenalty / 60)
 
 	response := model.FragmentListResponse{
 		Fragments:      items,
@@ -637,12 +694,48 @@ func CashoutFragments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 计算总碎片时间和折扣后时间
-	var totalSeconds int64
+	// 计算碎片折扣（新算法：按碎片大小分段折扣 + 数量惩罚）
+	var totalRawSeconds int64
+	var discountedSeconds int64
+
 	for _, f := range fragments {
-		totalSeconds += int64(f.Duration)
+		mins := float64(f.Duration) / 60
+		totalRawSeconds += int64(f.Duration)
+
+		// 按碎片大小计算折扣
+		var rate float64
+		switch {
+		case mins >= 40:
+			rate = 1.0 // ≥40分钟: 100%
+		case mins >= 30:
+			rate = 0.85 // 30-40分钟: 85%
+		case mins >= 20:
+			rate = 0.70 // 20-30分钟: 70%
+		case mins >= 15:
+			rate = 0.60 // 15-20分钟: 60%
+		case mins >= 10:
+			rate = 0.50 // 10-15分钟: 50%
+		case mins >= 5:
+			rate = 0.40 // 5-10分钟: 40%
+		default:
+			rate = 0.30 // 3-5分钟: 30%
+		}
+		discountedSeconds += int64(float64(f.Duration) * rate)
 	}
-	discountedSeconds := int64(float64(totalSeconds) * 0.6)
+
+	// 数量惩罚
+	fragmentCount := len(fragments)
+	var quantityPenalty float64 = 1.0
+	switch {
+	case fragmentCount > 5:
+		quantityPenalty = 0.5 // >5个: 50%
+	case fragmentCount >= 4:
+		quantityPenalty = 0.7 // 4-5个: 70%
+	case fragmentCount == 3:
+		quantityPenalty = 0.9 // 3个: 90%
+	}
+
+	discountedSeconds = int64(float64(discountedSeconds) * quantityPenalty)
 
 	// 设置标签
 	tag := req.Tag
@@ -690,10 +783,16 @@ func CashoutFragments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 计算实际折扣率
+	var discountRate float64
+	if totalRawSeconds > 0 {
+		discountRate = float64(discountedSeconds) / float64(totalRawSeconds)
+	}
+
 	response := model.CashoutFragmentsResponse{
-		RawMinutes:     totalSeconds / 60,
+		RawMinutes:     totalRawSeconds / 60,
 		ActualMinutes:  discountedSeconds / 60,
-		Discount:       "60%",
+		Discount:       formatDiscount(discountRate),
 		ClearedCount:   len(fragments),
 	}
 
