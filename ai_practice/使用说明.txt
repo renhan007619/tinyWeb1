@@ -1,0 +1,54 @@
+========================================
+  论文关键词分析工具 - 使用说明
+========================================
+
+【项目位置】
+d:\workspace\tinyWeb1\ai_practice\
+
+【文件说明】
+- analysis_report.py      主分析程序
+- requirements.txt        依赖包列表
+- setup_and_run.bat       一键安装运行脚本
+- data\                   数据目录（存放论文信息.xlsx）
+- output\                 输出目录（生成的图表和报告）
+
+【运行步骤】
+
+方法一：一键运行（推荐）
+1. 双击运行 setup_and_run.bat
+2. 等待自动安装依赖并运行分析
+3. 查看 output\ 目录生成的结果
+
+方法二：手动运行
+1. 打开命令行，进入项目目录:
+   cd d:\workspace\tinyWeb1\ai_practice
+
+2. 安装依赖:
+   py -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+3. 确保数据文件在 data\论文信息.xlsx
+
+4. 运行分析:
+   py analysis_report.py
+
+【输出结果】
+运行完成后，output\ 目录会生成：
+- 专业论文数量统计.png     各专业论文数量柱状图
+- 论文类型分布.png         论文类型饼图
+- 词云图.png               关键词词云图
+- 专业相似度热力图.png     专业间相似度矩阵热力图
+- 词频统计表.xlsx          关键词频率统计表
+
+【注意事项】
+1. 首次运行需要联网安装依赖包
+2. 如果数据文件位置不同，请复制到 data\ 目录
+3. 程序默认分析"交通运输学院"数据
+   如需修改，请编辑 analysis_report.py 中的 TARGET_COLLEGE 变量
+
+【提交内容】
+根据作业要求，你需要提交：
+1. 本代码文件 (analysis_report.py)
+2. 生成的分析报告图表 (output\ 目录)
+3. 可将 output\ 内容打包成 zip 上传
+
+========================================
