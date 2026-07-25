@@ -215,12 +215,13 @@ func autoMigrateMainDB(db *gorm.DB) {
 	// 将所有需要 GORM 管理的模型传入 AutoMigrate
 	// GORM 会根据结构体定义自动创建对应的表
 	err := db.AutoMigrate(
-		&model.VisitStats{},   // 访问统计表
-		&model.User{},         // 用户表（注册登录功能新增）
-		&model.StudySession{}, // 专注记录表（专注时间功能新增）
-		&model.StudyTag{},     // 专注标签表（专注时间功能新增）
-		&model.GalleryImage{}, // 图库图片表（Day 1 新增）
-		&model.GalleryAlbum{}, // 图库专辑表（Day 1 新增）
+		&model.VisitStats{},      // 访问统计表
+		&model.User{},            // 用户表（注册登录功能新增）
+		&model.StudySession{},    // 专注记录表（专注时间功能新增）
+		&model.StudyTag{},        // 专注标签表（专注时间功能新增）
+		&model.GalleryImage{},    // 图库图片表（Day 1 新增）
+		&model.GalleryAlbum{},    // 图库专辑表（Day 1 新增）
+		&model.FocusFragment{},   // 专注碎片表（碎片功能新增）
 	)
 	if err != nil {
 		log.Fatalf("❌ 数据库自动迁移失败: %v", err)

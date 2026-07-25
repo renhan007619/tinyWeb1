@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(ssh user@1.15.224.88 \"echo '服务器连接成功'\")",
+      "Bash(ssh user@1.15.224.88 \"cd /home/user/tinyWeb1 && git fetch origin feature/focus-fragments && git checkout feature/focus-fragments && git pull origin feature/focus-fragments\")"
+    ]
+  }
+}

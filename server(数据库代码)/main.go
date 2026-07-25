@@ -51,6 +51,7 @@ import (
 
 func main() {
 	// 2026-05-14 日常提交，保持 GitHub 活跃度 💚
+	// 2026-07-16 持续积累，专注模块完善 🌱
 
 	// ============================================================
 	// 步骤 1: 加载配置
@@ -412,6 +413,40 @@ func startServer() {
 	mux.HandleFunc("/api/focus/average", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			handler.GetAverageFocus(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+
+	// ---- 专注碎片接口（碎片存储功能新增）----
+	// 保存碎片
+	mux.HandleFunc("/api/focus/fragment", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.SaveFragment(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 获取碎片列表
+	mux.HandleFunc("/api/focus/fragments", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetFragments(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 兑现碎片
+	mux.HandleFunc("/api/focus/fragments/cashout", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.CashoutFragments(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 删除单个碎片
+	mux.HandleFunc("/api/focus/fragments/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handler.DeleteFragment(w, r)
 		} else {
 			sendMethodNotAllowed(w)
 		}

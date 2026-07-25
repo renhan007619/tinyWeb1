@@ -392,6 +392,101 @@ func (StudySession) TableName() string {
 	return "study_sessions"
 }
 
+// ============================================================
+// 专注碎片相关模型（Focus Fragment 功能新增）
+// ============================================================
+
+// FocusFragment 专注碎片临时存储结构体
+// 对应数据库 focus_fragments 表，存储用户中断的专注时间碎片
+//
+// 设计思路：
+//   - 用户暂停专注时可以选择将已专注时间存入碎片银行
+//   - 碎片次日 0 点自动过期清零，制造紧迫感
+//   - 用户可以随时将碎片按折扣率（默认60%）兑换成专注记录
+//   - 小于 3 分钟的专注不能被保存为碎片
+//
+// 数据库表结构（由 GORM AutoMigrate 自动创建）：
+//
+//	| 列名       | 类型          | 说明                        |
+//	|------------|---------------|----------------------------|
+//	| id         | bigint unsigned| 自增主键                    |
+//	| created_at | datetime(3)   | 创建时间                    |
+//	| updated_at | datetime(3)   | 更新时间                    |
+//	| deleted_at | datetime(3)   | 软删除时间                  |
+//	| user_id    | bigint unsigned| 关联用户ID                   |
+//	| duration   | int           | 碎片秒数（实际专注时间）      |
+//	| date       | date          | 所属日期 YYYY-MM-DD          |
+//	| tag        | varchar(50)   | 标签名                       |
+//	| tag_color  | varchar(7)    | 标签颜色                     |
+type FocusFragment struct {
+	gorm.Model
+	UserID   uint   `gorm:"index;not null" json:"user_id"`                      // 关联用户ID
+	Duration int    `gorm:"not null" json:"duration"`                           // 碎片秒数
+	Date     string `gorm:"type:date;index;not null" json:"date"`               // 所属日期
+	Tag      string `gorm:"type:varchar(50);not null" json:"tag"`               // 标签名
+	TagColor string `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
+}
+
+// TableName 指定 FocusFragment 对应的数据库表名
+func (FocusFragment) TableName() string {
+	return "focus_fragments"
+}
+
+// StudySessionFragment 是 StudySession 的扩展，支持标记碎片兑换记录
+type StudySessionFragment struct {
+	StudySession
+	IsFragment   bool  `gorm:"default:false" json:"is_fragment"`    // 是否由碎片兑换
+	RawDuration  int   `json:"raw_duration"`                         // 原始碎片总时间（折扣前）
+	DiscountRate int   `gorm:"default:60" json:"discount_rate"`      // 折扣率（百分比，默认60）
+}
+
+// TableName 指定 StudySessionFragment 对应的数据库表名
+func (StudySessionFragment) TableName() string {
+	return "study_sessions"
+}
+
+// ---- 专注碎片 API 请求/响应结构体 ----
+
+// SaveFragmentRequest 保存专注碎片的请求体
+// 前端 POST /api/focus/fragment 时提交的 JSON 数据
+type SaveFragmentRequest struct {
+	Duration int    `json:"duration" binding:"required,min=180,max=14400"` // 碎片秒数（最少3分钟，最多4小时）
+	Tag      string `json:"tag"`                                           // 标签名
+	TagColor string `json:"tag_color"`                                     // 标签颜色
+}
+
+// FragmentItem 单个碎片信息
+type FragmentItem struct {
+	ID       uint      `json:"id"`         // 碎片ID
+	Duration int       `json:"duration"`   // 碎片秒数
+	Minutes  int       `json:"minutes"`    // 碎片分钟数（方便前端展示）
+	Tag      string    `json:"tag"`        // 标签名
+	TagColor string    `json:"tag_color"`  // 标签颜色
+	CreatedAt time.Time `json:"created_at"` // 创建时间
+}
+
+// FragmentListResponse 碎片列表响应
+type FragmentListResponse struct {
+	Fragments      []FragmentItem `json:"fragments"`        // 碎片列表
+	TotalSeconds   int64          `json:"total_seconds"`    // 总秒数
+	TotalMinutes   int            `json:"total_minutes"`    // 总分钟数
+	DiscountedMins int            `json:"discounted_mins"`  // 折扣后分钟数（60%）
+}
+
+// CashoutFragmentsRequest 兑现碎片的请求体
+type CashoutFragmentsRequest struct {
+	Tag      string `json:"tag"`       // 兑现后的标签名
+	TagColor string `json:"tag_color"` // 兑现后的标签颜色
+}
+
+// CashoutFragmentsResponse 兑现碎片响应
+type CashoutFragmentsResponse struct {
+	RawMinutes     int64  `json:"raw_minutes"`      // 原始碎片分钟数
+	ActualMinutes  int64  `json:"actual_minutes"`   // 实际计入分钟数（折扣后）
+	Discount       string `json:"discount"`         // 折扣率（如"60%"）
+	ClearedCount   int    `json:"cleared_count"`    // 清空的碎片数量
+}
+
 // StudyTag 用户自定义的专注标签模板
 // 对应数据库 study_tags 表，存储用户创建/使用的标签
 //
