@@ -37,6 +37,7 @@ func main() {
 	//722
 	//723
 	//724
+	//725
 	s := "hello"
 	s1 := point(s, 2)
 	fmt.Printf("原字符串:%s\n", s)
