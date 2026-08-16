@@ -6905,6 +6905,11 @@
             tags: [],               // 标签列表（从后端加载）
             timerId: null,          // setInterval 返回的 ID
             startedAt: null,        // 本次专注开始时间
+            _pausedDuration: 0,     // 累计暂停毫秒数（页面跳转恢复时也会用到）
+            _pausedAt: null,        // 最近一次暂停时间戳
+
+            // 计时状态持久化 key：跳转到图库/文件管理等其他页面后，返回时恢复计时
+            STORAGE_KEY: 'tinyweb_focus_timer_state',
 
             // SVG 进度条常量
             RING_CIRCUMFERENCE: 2 * Math.PI * 88,  // ≈ 553
@@ -7085,6 +7090,9 @@
                         self.closeDeleteConfirm();
                     }
                 });
+
+                // 恢复上次未完成的专注计时（跳转其他页面后返回时）
+                this._restore();
             },
 
             // ---- 悬浮球拖拽初始化 ----
@@ -7214,7 +7222,13 @@
                     this._pausedDuration += (now - this._pausedAt);
                 }
 
-                // 更新 UI
+                this._setRunningUI();
+                this._startTicking();
+                this._persist();
+            },
+
+            // ---- 设置运行中的 UI（开始/继续/恢复共用）----
+            _setRunningUI: function() {
                 var startBtn = document.getElementById('focusStartBtn');
                 startBtn.className = 'focus-ctrl-btn pause-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
@@ -7231,8 +7245,11 @@
 
                 // 禁用标签和时长选择
                 this._setConfigDisabled(true);
+            },
 
-                // 启动定时器（500ms刷新，显示更流畅；用时间差计算所以不怕节流）
+            // ---- 启动 tick 定时器（500ms刷新，用时间差计算不怕节流）----
+            _startTicking: function() {
+                var self = this;
                 clearInterval(this.timerId);
                 this.timerId = setInterval(function() {
                     self.tick();
@@ -7246,6 +7263,12 @@
                 this.timerId = null;
                 this._pausedAt = Date.now();
 
+                this._setPausedUI();
+                this._persist();
+            },
+
+            // ---- 设置暂停中的 UI（暂停/恢复共用）----
+            _setPausedUI: function() {
                 var startBtn = document.getElementById('focusStartBtn');
                 startBtn.className = 'focus-ctrl-btn start-btn';
                 startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
@@ -7512,6 +7535,7 @@
                 this.updateDisplay();
                 this.updateRing(1);
                 this._setConfigDisabled(false);
+                this._clearPersist();
             },
 
             // ---- 切换到碎片保存模式（专注碎片功能新增）----
@@ -7561,6 +7585,8 @@
 
             // ---- 专注完成 ----
             finish: function() {
+                // 计时完成，清除持久化状态，防止页面刷新后重复恢复
+                this._clearPersist();
                 this.state = 'idle';
                 clearInterval(this.timerId);
                 this.timerId = null;
@@ -7765,6 +7791,84 @@
                 tagBtns.forEach(function(b) { b.disabled = disabled; b.style.opacity = disabled ? '0.5' : ''; });
                 var durBtns = document.querySelectorAll('#focusDurations .focus-duration-btn');
                 durBtns.forEach(function(b) { b.disabled = disabled; b.style.opacity = disabled ? '0.5' : ''; });
+            },
+
+            // ---- 持久化计时状态到 localStorage ----
+            // 作用：跳转到图库/文件管理等其他页面时，页面被卸载、内存状态全部丢失；
+            //       把运行中的计时状态保存下来，返回本页时恢复，不中断。
+            _persist: function() {
+                if (this.state === 'idle') return; // idle 状态无需保存
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
+                        state: this.state,
+                        duration: this.duration,
+                        startedAt: this.startedAt,
+                        pausedDuration: this._pausedDuration || 0,
+                        pausedAt: this._pausedAt || null,
+                        tag: this.tag,
+                        tagColor: this.tagColor
+                    }));
+                } catch(e) {
+                    console.warn('[FocusTimer] 持久化计时状态失败:', e);
+                }
+            },
+
+            // ---- 清除持久化的计时状态 ----
+            _clearPersist: function() {
+                try { localStorage.removeItem(this.STORAGE_KEY); } catch(e) {}
+            },
+
+            // ---- 恢复上次未完成的专注计时（init 时调用）----
+            _restore: function() {
+                var saved = null;
+                try { saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY)); } catch(e) {}
+                if (!saved || (saved.state !== 'running' && saved.state !== 'paused')) {
+                    return;
+                }
+
+                // 恢复基础设置
+                this.duration = saved.duration || this.duration;
+                this.tag = saved.tag || '未分类';
+                this.tagColor = saved.tagColor || '#6c5ce7';
+                this.startedAt = saved.startedAt;
+                this._pausedDuration = saved.pausedDuration || 0;
+                this._pausedAt = saved.pausedAt || null;
+
+                var now = Date.now();
+
+                if (saved.state === 'paused') {
+                    // 暂停中离开：页面关闭期间保持暂停，这段时间计入暂停时长（不算专注时间）
+                    this._pausedDuration += (now - this._pausedAt);
+                    this._pausedAt = now;
+                }
+
+                // 用真实时间差计算剩余（跳转期间的时间会正确扣除）
+                var elapsed = (now - this.startedAt - this._pausedDuration) / 1000;
+                this.remaining = Math.max(0, Math.ceil(this.duration - elapsed));
+
+                if (elapsed >= this.duration) {
+                    // 页面关闭期间计时已到点：按完成处理（保存记录 + 完成弹窗）
+                    this.finish();
+                    return;
+                }
+
+                // 更新显示
+                this.updateDisplay();
+                this.updateRing(this.remaining / this.duration);
+                document.getElementById('focusTagText').textContent = this.tag;
+
+                if (saved.state === 'running') {
+                    // 运行中离开：恢复运行，继续倒计时
+                    this.state = 'running';
+                    this._setRunningUI();
+                    this._startTicking();
+                    this._persist();
+                } else {
+                    // 保持暂停状态
+                    this.state = 'paused';
+                    this._setPausedUI();
+                    this._persist();
+                }
             },
 
             // ---- 请求桌面通知权限 ----
