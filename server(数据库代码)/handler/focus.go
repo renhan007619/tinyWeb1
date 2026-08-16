@@ -403,7 +403,18 @@ func GetTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendJSON(w, http.StatusOK, model.SuccessResponse(tags))
+	// 转换为响应结构，显式带上小写 id 字段
+	// （StudyTag 内嵌 gorm.Model，其 ID 默认序列化为大写 "ID"，前端无法用 t.id 读取）
+	items := make([]model.StudyTagItem, 0, len(tags))
+	for _, t := range tags {
+		items = append(items, model.StudyTagItem{
+			ID:    t.ID,
+			Name:  t.Name,
+			Color: t.Color,
+		})
+	}
+
+	sendJSON(w, http.StatusOK, model.SuccessResponse(items))
 }
 
 // ============================================================
@@ -437,8 +448,9 @@ func DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 删除标签
-	if err := database.Delete(&tag).Error; err != nil {
+	// 删除标签（硬删除：彻底移除记录，释放 user_id+name 唯一索引，
+	// 这样用户删除后可以重新创建同名标签，不会被软删除残留记录挡住）
+	if err := database.Unscoped().Delete(&tag).Error; err != nil {
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "删除标签失败"))
 		return
 	}

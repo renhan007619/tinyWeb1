@@ -7985,7 +7985,8 @@
 
             // ---- 显示删除确认弹窗 ----
             showDeleteConfirm: function(tagId, tagName) {
-                this._tagToDelete = { id: tagId, name: tagName };
+                // tagId 来自 DOM 属性，是字符串；转成数字，避免后续 !== 比较因类型不同而失效
+                this._tagToDelete = { id: parseInt(tagId, 10), name: tagName };
                 document.getElementById('confirmTagName').textContent = tagName;
                 document.getElementById('focusDeleteConfirmOverlay').classList.add('show');
             },

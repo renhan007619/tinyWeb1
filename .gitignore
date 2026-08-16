@@ -9,3 +9,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Go 构建缓存（本地编译生成）
+.gocache/

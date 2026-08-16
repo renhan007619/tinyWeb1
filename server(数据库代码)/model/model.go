@@ -517,6 +517,16 @@ func (StudyTag) TableName() string {
 	return "study_tags"
 }
 
+// StudyTagItem 标签列表响应项
+// GET /api/focus/tags 返回的数据，显式带小写 id 字段。
+// StudyTag 内嵌 gorm.Model，其 ID 字段默认序列化为大写 "ID"，前端无法用 t.id 读取，
+// 因此对外返回时用本结构体转换。
+type StudyTagItem struct {
+	ID    uint   `json:"id"`    // 标签ID
+	Name  string `json:"name"`  // 标签名
+	Color string `json:"color"` // 标签颜色
+}
+
 // ---- 专注时间 API 请求/响应结构体 ----
 
 // CreateFocusSessionRequest 创建专注记录的请求体

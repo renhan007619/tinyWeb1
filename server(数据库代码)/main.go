@@ -397,9 +397,16 @@ func startServer() {
 			handler.GetTags(w, r)
 		case http.MethodPost:
 			handler.CreateTag(w, r)
-		case http.MethodDelete:
-			handler.DeleteTag(w, r)
 		default:
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 标签删除需要带 ID 的路径，必须用带尾斜杠的 pattern 匹配子路径
+	// （与 /api/focus/fragments/、/api/gallery/images/ 同理）
+	mux.HandleFunc("/api/focus/tags/", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handler.DeleteTag(w, r)
+		} else {
 			sendMethodNotAllowed(w)
 		}
 	}))
