@@ -8007,14 +8007,16 @@
             // ---- 删除标签 ----
             deleteTag: function(tagId, tagName) {
                 var self = this;
-                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/tags/' + tagId, {
+                // 统一转成数字：DOM 属性读出来是字符串，避免后面 !== 因类型不一致而判断失败
+                var id = parseInt(tagId, 10);
+                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/tags/' + id, {
                     method: 'DELETE'
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
                     if (res.code === 0) {
-                        // 删除成功，从本地列表中移除
-                        self.tags = self.tags.filter(function(t) { return t.id !== tagId; });
+                        // 删除成功，从本地列表中移除（用 Number 转换防止类型不一致）
+                        self.tags = self.tags.filter(function(t) { return Number(t.id) !== id; });
                         // 如果当前选中的标签被删除了，切换到默认标签
                         if (self.tag === tagName) {
                             self.selectTag('Go语言', '#FF6B6B');
