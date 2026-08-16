@@ -15,12 +15,39 @@ import (
 	"strings"
 	"time"
 
+	"tinyweb1/config"
 	"tinyweb1/db"
 	"tinyweb1/middleware"
 	"tinyweb1/model"
 )
 
 const GalleryUploadDir = "uploads/gallery"
+
+// getGalleryUploadRoot 计算图库物理文件根目录（绝对路径）
+// 必须与 main.go 中 /uploads/ 静态服务的目录保持一致：
+//
+//	rootDir = STATIC_DIR（为空则用当前工作目录）
+//	uploadsDir = rootDir/../uploads
+//
+// 物理文件存放在 <uploadsDir>/gallery/ 下，前端通过 /uploads/gallery/... 访问。
+// 之前这里用的是相对路径 "uploads/gallery"（基于程序运行目录），
+// 导致文件写到了 server 运行目录下，而 /uploads/ 路由去 STATIC_DIR 父目录找，路径对不上，图片 404。
+func getGalleryUploadRoot() string {
+	rootDir := config.GetStaticDir()
+	if rootDir == "" {
+		wd, err := os.Getwd()
+		if err == nil {
+			rootDir = wd
+		}
+	}
+	return filepath.Join(rootDir, "..", "uploads", "gallery")
+}
+
+// resolveGalleryPath 把数据库存储的相对路径（uploads/gallery/...）解析为磁盘绝对路径
+// 用于删除等需要访问物理文件的操作
+func resolveGalleryPath(relPath string) string {
+	return filepath.Join(getGalleryUploadRoot(), strings.TrimPrefix(relPath, "uploads/gallery/"))
+}
 
 var AllowedImageTypes = map[string]bool{
 	"image/jpeg": true, "image/jpg": true, "image/png": true,
@@ -60,7 +87,7 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 	tags := r.FormValue("tags")
 
 	today := time.Now().Format("2006-01-02")
-	userDir := filepath.Join(GalleryUploadDir, fmt.Sprintf("user_%d", userID), today)
+	userDir := filepath.Join(getGalleryUploadRoot(), fmt.Sprintf("user_%d", userID), today)
 	os.MkdirAll(userDir, 0755)
 
 	var uploaded []model.UploadImageResponse
@@ -111,25 +138,29 @@ func processUpload(file *multipart.FileHeader, userID uint, userDir, today, desc
 		ext = ".jpg"
 	}
 	newName := fmt.Sprintf("%s_%s%s", generateID(), sanitizeName(file.Filename), ext)
-	filePath := filepath.Join(userDir, newName)
+	// 物理文件写入绝对路径（getGalleryUploadRoot 已与 /uploads/ 静态服务目录一致）
+	absPath := filepath.Join(userDir, newName)
 
 	// 保存文件
-	dst, _ := os.Create(filePath)
+	dst, _ := os.Create(absPath)
 	defer dst.Close()
 	io.Copy(dst, src)
 
+	// 数据库存相对路径（与前端 /uploads/gallery/... URL 对应）
+	relPath := filepath.ToSlash(filepath.Join(GalleryUploadDir, fmt.Sprintf("user_%d", userID), today, newName))
+
 	// 保存到数据库
 	img := model.GalleryImage{
-		UserID: userID, FilePath: filePath, FileName: file.Filename,
+		UserID: userID, FilePath: relPath, FileName: file.Filename,
 		FileSize: file.Size, MimeType: mimeType, UploadDate: today,
 		Description: desc, Tags: tags,
 	}
 	if err := db.GetDB().Create(&img).Error; err != nil {
-		os.Remove(filePath)
+		os.Remove(absPath)
 		return nil, err
 	}
 
-	return &model.UploadImageResponse{ID: img.ID, FilePath: filePath, UploadDate: today}, nil
+	return &model.UploadImageResponse{ID: img.ID, FilePath: relPath, UploadDate: today}, nil
 }
 
 func sanitizeName(name string) string {
@@ -520,10 +551,11 @@ func PermanentDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 删除物理文件
-	os.Remove(img.FilePath)
+	// 删除物理文件（把数据库相对路径解析为磁盘绝对路径）
+	absPath := resolveGalleryPath(img.FilePath)
+	os.Remove(absPath)
 	// 尝试删除缩略图（如果存在）
-	thumbPath := filepath.Join(filepath.Dir(img.FilePath), "thumb_"+filepath.Base(img.FilePath))
+	thumbPath := filepath.Join(filepath.Dir(absPath), "thumb_"+filepath.Base(absPath))
 	os.Remove(thumbPath)
 
 	// 删除数据库记录
