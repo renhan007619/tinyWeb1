@@ -2946,6 +2946,21 @@
             gap: 12px;
             justify-content: center;
         }
+        /* 暂停时刻提示（暂停时显示，恢复时隐藏）*/
+        .focus-pause-time {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+            font-size: 0.78rem;
+            color: #e17055;
+            opacity: 0.85;
+            letter-spacing: 0.3px;
+        }
+        .focus-pause-time i {
+            font-size: 0.72rem;
+        }
         .focus-ctrl-btn {
             width: 52px; height: 52px;
             border-radius: 50%;
@@ -5192,6 +5207,12 @@
                 </button>
             </div>
 
+            <!-- 暂停时刻提示（暂停时显示，恢复时隐藏）-->
+            <div class="focus-pause-time" id="focusPauseTime" style="display:none">
+                <i class="fa-solid fa-circle-pause"></i>
+                暂停于 <span id="focusPauseTimeText"></span>
+            </div>
+
             <!-- 完成提示（默认隐藏）-->
             <div class="focus-complete-msg" id="focusCompleteMsg" style="display:none">
                 <div class="focus-complete-icon">🎉</div>
@@ -6907,6 +6928,7 @@
             startedAt: null,        // 本次专注开始时间
             _pausedDuration: 0,     // 累计暂停毫秒数（页面跳转恢复时也会用到）
             _pausedAt: null,        // 最近一次暂停时间戳
+            _pausedAtDisplay: null, // 用于显示的"暂停时刻"（恢复场景保留用户实际暂停的时间）
 
             // 计时状态持久化 key：跳转到图库/文件管理等其他页面后，返回时恢复计时
             STORAGE_KEY: 'tinyweb_focus_timer_state',
@@ -7245,6 +7267,27 @@
 
                 // 禁用标签和时长选择
                 this._setConfigDisabled(true);
+
+                // 恢复专注时隐藏暂停时刻小字
+                this._hidePauseTime();
+            },
+
+            // ---- 显示/隐藏暂停时刻小字 ----
+            _showPauseTime: function() {
+                var el = document.getElementById('focusPauseTime');
+                var textEl = document.getElementById('focusPauseTimeText');
+                if (!el || !textEl) return;
+                // 优先用"用户实际暂停时刻"（恢复场景），正常暂停用 _pausedAt
+                var ts = this._pausedAtDisplay || this._pausedAt;
+                if (!ts) return;
+                var d = new Date(ts);
+                var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+                textEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+                el.style.display = 'flex';
+            },
+            _hidePauseTime: function() {
+                var el = document.getElementById('focusPauseTime');
+                if (el) el.style.display = 'none';
             },
 
             // ---- 启动 tick 定时器（500ms刷新，用时间差计算不怕节流）----
@@ -7262,6 +7305,8 @@
                 clearInterval(this.timerId);
                 this.timerId = null;
                 this._pausedAt = Date.now();
+                // 记录暂停这一刻的时间，供下方小字展示
+                this._pausedAtDisplay = this._pausedAt;
 
                 this._setPausedUI();
                 this._persist();
@@ -7282,6 +7327,9 @@
                 );
                 var focusedMins = Math.floor(focusedSeconds / 60);
                 document.getElementById('focusFragmentBtn').disabled = focusedMins < 3;
+
+                // 显示暂停时刻小字（提醒用户暂停了，防止忘记恢复）
+                this._showPauseTime();
             },
 
             // ---- 显示暂停确认弹窗（专注碎片功能新增）----
@@ -7535,6 +7583,7 @@
                 this.updateDisplay();
                 this.updateRing(1);
                 this._setConfigDisabled(false);
+                this._hidePauseTime();
                 this._clearPersist();
             },
 
@@ -7587,6 +7636,7 @@
             finish: function() {
                 // 计时完成，清除持久化状态，防止页面刷新后重复恢复
                 this._clearPersist();
+                this._hidePauseTime();
                 this.state = 'idle';
                 clearInterval(this.timerId);
                 this.timerId = null;
@@ -7837,7 +7887,8 @@
                 var now = Date.now();
 
                 if (saved.state === 'paused') {
-                    // 暂停中离开：页面关闭期间保持暂停，这段时间计入暂停时长（不算专注时间）
+                    // 保留用户实际暂停的时刻用于展示，再把页面关闭期间计入暂停时长（不算专注时间）
+                    this._pausedAtDisplay = saved.pausedAt;
                     this._pausedDuration += (now - this._pausedAt);
                     this._pausedAt = now;
                 }
