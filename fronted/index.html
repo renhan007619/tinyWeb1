@@ -8373,6 +8373,7 @@
                 if (window.innerWidth <= 768) {
                     bubble.style.top = '';
                     bubble.style.right = '';
+                    bubble.style.maxHeight = '';
                     mini1.style.top = '';
                     mini1.style.right = '';
                     mini2.style.top = '';
@@ -8383,6 +8384,9 @@
                     var topY = Math.max(40, (viewH - bubbleH) / 2);
                     bubble.style.top = topY + 'px';
                     bubble.style.right = '100px'; // 离左侧面板更近
+                    // CSS 允许面板长到 100vh-40px，远高于预估的 720；top 按 720 居中会让
+                    // "top+高度"超出视口，底部"共 X 次完成"被截且滚不出来。按真实 top 收紧高度。
+                    bubble.style.maxHeight = (viewH - topY - 16) + 'px';
 
                     // 小泡泡位置：从主泡泡左下方引出
                     var mini1Top = topY + bubbleH - 20;
