@@ -3811,7 +3811,9 @@
             width: 340px;
             max-width: 88vw;
             max-height: calc(100vh - 40px);
+            max-height: calc(100dvh - 40px); /* dvh=动态视口：手机浏览器工具栏不遮挡面板底部，可滚到最下面 */
             overflow-y: auto;
+            overscroll-behavior: contain; /* 面板内滚到底后不带动背景页滚动 */
             scrollbar-width: thin;
             scrollbar-color: var(--text-dim) transparent;
         }
@@ -4497,14 +4499,19 @@
                 width: 300px;
                 max-width: 85vw;
                 max-height: calc(100vh - 20px);
+                max-height: calc(100dvh - 20px);
                 padding: 16px 14px;
                 border-radius: 18px;
             }
             .focus-report-mini-bubble1 {
                 right: 36px !important;
+                top: calc(100vh - 60px);
+                top: calc(100dvh - 60px); /* 小屏：小泡泡贴主泡泡左下（JS 不再设置 inline top） */
             }
             .focus-report-mini-bubble2 {
                 right: 56px !important;
+                top: calc(100vh - 30px);
+                top: calc(100dvh - 30px);
             }
         }
     </style>
@@ -8358,24 +8365,36 @@
                 var overlay = document.getElementById('focusReportOverlay');
 
                 // 计算主泡泡位置（右侧偏上，高于左侧面板顶部）
-                var bubbleH = 720; // 预估高度（放大以提升位置，更高）
-                var viewH = window.innerHeight;
-                var topY = Math.max(40, (viewH - bubbleH) / 2);
-                bubble.style.top = topY + 'px';
-                bubble.style.right = '100px'; // 离左侧面板更近
+                // 小屏交给 CSS 媒体查询定位（top:10px/right:8px）：inline 样式会覆盖媒体查询，
+                // 且手机上"JS 算的 top + CSS 的 100vh 高度"会超出真实可视高度，
+                // 导致面板底部"共 X 次完成"被浏览器工具栏挡住、怎么滚都看不到
                 bubble.style.transform = '';
                 bubble.style.animation = '';
+                if (window.innerWidth <= 768) {
+                    bubble.style.top = '';
+                    bubble.style.right = '';
+                    mini1.style.top = '';
+                    mini1.style.right = '';
+                    mini2.style.top = '';
+                    mini2.style.right = '';
+                } else {
+                    var bubbleH = 720; // 预估高度（放大以提升位置，更高）
+                    var viewH = window.innerHeight;
+                    var topY = Math.max(40, (viewH - bubbleH) / 2);
+                    bubble.style.top = topY + 'px';
+                    bubble.style.right = '100px'; // 离左侧面板更近
 
-                // 小泡泡位置：从主泡泡左下方引出
-                var mini1Top = topY + bubbleH - 20;
-                var mini1Right = 52;
-                mini1.style.top = mini1Top + 'px';
-                mini1.style.right = mini1Right + 'px';
+                    // 小泡泡位置：从主泡泡左下方引出
+                    var mini1Top = topY + bubbleH - 20;
+                    var mini1Right = 52;
+                    mini1.style.top = mini1Top + 'px';
+                    mini1.style.right = mini1Right + 'px';
 
-                var mini2Top = mini1Top + 38;
-                var mini2Right = 72;
-                mini2.style.top = mini2Top + 'px';
-                mini2.style.right = mini2Right + 'px';
+                    var mini2Top = mini1Top + 38;
+                    var mini2Right = 72;
+                    mini2.style.top = mini2Top + 'px';
+                    mini2.style.right = mini2Right + 'px';
+                }
 
                 // 清除hide动画，添加show动画
                 bubble.classList.remove('hide');
