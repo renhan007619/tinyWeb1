@@ -38,6 +38,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -609,8 +610,21 @@ func startServer() {
 
 	// ---- 静态文件兜底路由 ----
 	// 所有未被 API 路由匹配的请求都交给静态文件服务器处理
+	// HTML 响应加 no-cache：页面更新频繁，防止浏览器启发式缓存导致部署后看不到新版本
+	// 其他静态资源（图片/字体等）缓存 1 小时
 	fs := http.FileServer(http.Dir(rootDir))
-	mux.Handle("/", fs)
+	staticCacheControl := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p := r.URL.Path
+			if strings.HasSuffix(p, "/") || strings.HasSuffix(p, ".html") {
+				w.Header().Set("Cache-Control", "no-cache")
+			} else {
+				w.Header().Set("Cache-Control", "public, max-age=3600")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	mux.Handle("/", staticCacheControl(fs))
 
 	// 打印启动信息
 	addr := config.GetServerPort()
