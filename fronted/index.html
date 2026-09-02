@@ -2325,6 +2325,25 @@
                         top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
                         box-shadow 0.3s ease, background 0.3s ease;
         }
+        /* ---- 悬浮球状态徽标（没开始/进行中/暂停中，常驻显示在球正下方）---- */
+        .focus-entry-status {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 2px 9px;
+            border-radius: 10px;
+            font-size: 0.62rem;
+            font-family: 'Noto Sans SC', sans-serif;
+            white-space: nowrap;
+            color: #fff;
+            background: rgba(120, 120, 135, 0.85);   /* 没开始-灰 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            pointer-events: none;                     /* 不挡点击与拖拽 */
+            transition: background 0.3s ease;
+        }
+        .focus-entry-status.running { background: rgba(0, 184, 148, 0.92); }   /* 进行中-绿 */
+        .focus-entry-status.paused  { background: rgba(225, 112, 85, 0.92); }  /* 暂停中-橙 */
 
         @keyframes focusBtnPulse {
             0%, 100% { box-shadow: 0 4px 16px rgba(108, 92, 231, 0.4); }
@@ -5000,6 +5019,7 @@
     <!-- ==================== 专注计时器入口按钮 ==================== -->
     <button class="focus-entry-btn" id="focusEntryBtn" title="专注计时">
         <i class="fa-solid fa-hourglass-half"></i>
+        <span class="focus-entry-status" id="focusEntryStatus">没开始</span>
     </button>
 
     <!-- ==================== 专注报告泡泡面板（右侧展开）==================== -->
@@ -6953,6 +6973,9 @@
                 // ---- 悬浮球拖拽逻辑 ----
                 this._initDrag();
 
+                // 初始化悬浮球状态徽标（兜底，正常由 HTML 初始文字承载）
+                this._updateEntryStatus();
+
                 // 入口按钮 → 打开面板
                 document.getElementById('focusEntryBtn').addEventListener('click', function(e) {
                     if (self._dragMoved) return; // 拖拽中不触发点击
@@ -7277,6 +7300,8 @@
 
                 // 恢复专注时隐藏暂停时刻小字
                 this._hidePauseTime();
+                // 悬浮球状态徽标 → 进行中
+                this._updateEntryStatus();
             },
 
             // ---- 显示/隐藏暂停时刻小字 ----
@@ -7295,6 +7320,20 @@
             _hidePauseTime: function() {
                 var el = document.getElementById('focusPauseTime');
                 if (el) el.style.display = 'none';
+            },
+
+            // ---- 更新悬浮球状态徽标（没开始/进行中/暂停中）----
+            _updateEntryStatus: function() {
+                var el = document.getElementById('focusEntryStatus');
+                if (!el) return;
+                var map = {
+                    idle:    { text: '没开始', cls: '' },
+                    running: { text: '进行中', cls: 'running' },
+                    paused:  { text: '暂停中', cls: 'paused' }
+                };
+                var s = map[this.state] || map.idle;
+                el.textContent = s.text;
+                el.className = 'focus-entry-status' + (s.cls ? ' ' + s.cls : '');
             },
 
             // ---- 启动 tick 定时器（500ms刷新，用时间差计算不怕节流）----
@@ -7337,6 +7376,8 @@
 
                 // 显示暂停时刻小字（提醒用户暂停了，防止忘记恢复）
                 this._showPauseTime();
+                // 悬浮球状态徽标 → 暂停中
+                this._updateEntryStatus();
             },
 
             // ---- 显示暂停确认弹窗（专注碎片功能新增）----
@@ -7592,6 +7633,8 @@
                 this._setConfigDisabled(false);
                 this._hidePauseTime();
                 this._clearPersist();
+                // 悬浮球状态徽标 → 没开始
+                this._updateEntryStatus();
             },
 
             // ---- 切换到碎片保存模式（专注碎片功能新增）----
@@ -7650,6 +7693,8 @@
 
                 // 还原入口按钮
                 document.getElementById('focusEntryBtn').classList.remove('running');
+                // 悬浮球状态徽标 → 没开始
+                this._updateEntryStatus();
 
                 // 保存记录到后端
                 this.saveSession();
