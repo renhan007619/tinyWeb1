@@ -7006,9 +7006,7 @@
                 // 存碎片按钮
                 document.getElementById('focusFragmentBtn').addEventListener('click', function() {
                     if (self.state === 'paused') {
-                        var focusedSeconds = Math.floor(
-                            (Date.now() - self.startedAt - self._pausedDuration) / 1000
-                        );
+                        var focusedSeconds = self.getFocusedSeconds();
                         var focusedMins = Math.floor(focusedSeconds / 60);
                         if (focusedMins >= 3) {
                             self.saveFragment(focusedSeconds);
@@ -7363,9 +7361,7 @@
                 document.getElementById('focusResetBtn').disabled = false;
 
                 // 计算已专注时间，≥3分钟才启用存碎片按钮
-                var focusedSeconds = Math.floor(
-                    (Date.now() - this.startedAt - this._pausedDuration) / 1000
-                );
+                var focusedSeconds = this.getFocusedSeconds();
                 var focusedMins = Math.floor(focusedSeconds / 60);
                 document.getElementById('focusFragmentBtn').disabled = focusedMins < 3;
 
@@ -7378,9 +7374,7 @@
             // ---- 显示暂停确认弹窗（专注碎片功能新增）----
             showPauseConfirm: function() {
                 var self = this;
-                var focusedSeconds = Math.floor(
-                    (Date.now() - this.startedAt - this._pausedDuration) / 1000
-                );
+                var focusedSeconds = this.getFocusedSeconds();
                 var focusedMins = Math.floor(focusedSeconds / 60);
                 var remainingMins = Math.ceil(this.remaining / 60);
                 var totalMins = Math.floor(this.duration / 60);
@@ -7432,6 +7426,17 @@
             // ---- 隐藏暂停确认弹窗（专注碎片功能新增）----
             hidePauseConfirm: function() {
                 document.getElementById('focusPauseOverlay').classList.remove('show');
+            },
+
+            // ---- 统一计算已专注秒数 ----
+            // 修复：_pausedDuration 只在「恢复」时才入账，暂停挂起期间直接用
+            // Date.now() - startedAt - _pausedDuration 会把挂着的时间继续算成专注，
+            // 导致暂停搁置一段时间后再存碎片，存入时长虚高（30 分钟变 55 分钟的 bug）。
+            getFocusedSeconds: function() {
+                var now = Date.now();
+                var ongoingPause = (this.state === 'paused' && this._pausedAt)
+                    ? (now - this._pausedAt) : 0;
+                return Math.floor((now - this.startedAt - this._pausedDuration - ongoingPause) / 1000);
             },
 
             // ---- 保存专注碎片（专注碎片功能新增）----
@@ -7571,9 +7576,7 @@
             reset: function(saveAsFragment) {
                 // 如果参数为true，且已专注超过3分钟，则保存为碎片
                 if (saveAsFragment === true && this.state === 'paused') {
-                    var focusedSeconds = Math.floor(
-                        (Date.now() - this.startedAt - this._pausedDuration) / 1000
-                    );
+                    var focusedSeconds = this.getFocusedSeconds();
                     if (focusedSeconds >= 180) {
                         this.saveFragment(focusedSeconds);
                         return;
@@ -7620,9 +7623,7 @@
             enableFragmentSaveMode: function() {
                 var self = this;
                 var resetBtn = document.getElementById('focusResetBtn');
-                var focusedSeconds = Math.floor(
-                    (Date.now() - this.startedAt - this._pausedDuration) / 1000
-                );
+                var focusedSeconds = this.getFocusedSeconds();
                 var focusedMins = Math.floor(focusedSeconds / 60);
 
                 if (focusedMins < 3) {
@@ -7648,7 +7649,7 @@
             tick: function() {
                 // 用真实时间差计算剩余秒数，不再依赖 setInterval 触发次数
                 // 这样即使浏览器后台节流导致 tick 少调用，时间依然准确
-                var elapsed = (Date.now() - this.startedAt - this._pausedDuration) / 1000;
+                var elapsed = this.getFocusedSeconds();
                 this.remaining = Math.max(0, Math.ceil(this.duration - elapsed));
 
                 if (this.remaining <= 0) {
