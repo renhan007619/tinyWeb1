@@ -47,28 +47,6 @@ func getUserID(r *http.Request) uint {
 	return id
 }
 
-// calculateDiscountRate 计算碎片折扣率
-// 满30分钟：100%（全额）
-// 不满30分钟：按分钟数/30的比例，从60%线性增加到100%
-// 例如：3分钟=60%, 15分钟=80%, 30分钟=100%
-func calculateDiscountRate(totalMinutes float64) float64 {
-	if totalMinutes >= 30 {
-		return 1.0 // 满30分钟全额
-	}
-	if totalMinutes <= 3 {
-		return 0.6 // 最少60%
-	}
-	// 线性插值：3分钟60% -> 30分钟100%
-	// (分钟数 - 3) / (30 - 3) * (1.0 - 0.6) + 0.6
-	return (totalMinutes-3)/27*0.4 + 0.6
-}
-
-// formatDiscount 格式化折扣显示（如 "60%", "85%", "100%"）
-func formatDiscount(rate float64) string {
-	percent := int(rate * 100)
-	return fmt.Sprintf("%d%%", percent)
-}
-
 // formatDuration 将秒数格式化为 "X小时Y分钟" 的可读字符串
 func formatDuration(seconds int64) string {
 	hours := seconds / 3600
@@ -631,64 +609,22 @@ func GetFragments(w http.ResponseWriter, r *http.Request) {
 		totalSeconds += int64(f.Duration)
 	}
 
-	// 计算折扣后时间（按碎片大小分段折扣 + 数量惩罚）
-	var discountedSeconds int64
-	for _, f := range fragments {
-		mins := float64(f.Duration) / 60
-		var rate float64
-		switch {
-		case mins >= 40:
-			rate = 1.0
-		case mins >= 30:
-			rate = 0.85
-		case mins >= 20:
-			rate = 0.70
-		case mins >= 15:
-			rate = 0.60
-		case mins >= 10:
-			rate = 0.50
-		case mins >= 5:
-			rate = 0.40
-		default:
-			rate = 0.30
-		}
-		discountedSeconds += int64(float64(f.Duration) * rate)
-	}
-
-	// 数量惩罚
-	fragmentCount := len(fragments)
-	var quantityPenalty float64 = 1.0
-	switch {
-	case fragmentCount > 5:
-		quantityPenalty = 0.5
-	case fragmentCount >= 4:
-		quantityPenalty = 0.7
-	case fragmentCount == 3:
-		quantityPenalty = 0.9
-	}
-
-	discountedMins := int(float64(discountedSeconds) * quantityPenalty / 60)
-
+	// 原额提现：可提现分钟数 = 总分钟数，无折扣、无数量惩罚
 	response := model.FragmentListResponse{
-		Fragments:      items,
-		TotalSeconds:   totalSeconds,
-		TotalMinutes:   int(totalSeconds / 60),
-		DiscountedMins: discountedMins,
+		Fragments:    items,
+		TotalSeconds: totalSeconds,
+		TotalMinutes: int(totalSeconds / 60),
+		CashoutMins:  int(totalSeconds / 60),
 	}
 
 	sendJSON(w, http.StatusOK, model.SuccessResponse(response))
 }
 
-// CashoutFragments 兑现当日所有碎片
+// CashoutFragments 提现当日所有碎片
 // POST /api/focus/fragments/cashout
-// 将碎片按60%折扣兑换成专注记录
+// 将碎片按原额提现成专注记录：每条碎片生成一条专注记录（保留各自标签），
+// 存多少提多少，无折扣、无数量惩罚
 func CashoutFragments(w http.ResponseWriter, r *http.Request) {
-	var req model.CashoutFragmentsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "请求数据格式错误"))
-		return
-	}
-
 	database := db.GetDB()
 	userID := getUserID(r)
 	today := time.Now().Format("2006-01-02")
@@ -702,86 +638,37 @@ func CashoutFragments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(fragments) == 0 {
-		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "没有可兑换的碎片"))
+		sendJSON(w, http.StatusBadRequest, model.ErrorResponse(400, "没有可提现的碎片"))
 		return
 	}
 
-	// 计算碎片折扣（新算法：按碎片大小分段折扣 + 数量惩罚）
-	var totalRawSeconds int64
-	var discountedSeconds int64
-
+	// 原额提现：每条碎片生成一条专注记录，保留碎片的标签与颜色，
+	// StartedAt 沿用碎片存入时间（体现真实专注发生时刻）
+	var totalSeconds int64
+	sessions := make([]model.StudySession, 0, len(fragments))
 	for _, f := range fragments {
-		mins := float64(f.Duration) / 60
-		totalRawSeconds += int64(f.Duration)
-
-		// 按碎片大小计算折扣
-		var rate float64
-		switch {
-		case mins >= 40:
-			rate = 1.0 // ≥40分钟: 100%
-		case mins >= 30:
-			rate = 0.85 // 30-40分钟: 85%
-		case mins >= 20:
-			rate = 0.70 // 20-30分钟: 70%
-		case mins >= 15:
-			rate = 0.60 // 15-20分钟: 60%
-		case mins >= 10:
-			rate = 0.50 // 10-15分钟: 50%
-		case mins >= 5:
-			rate = 0.40 // 5-10分钟: 40%
-		default:
-			rate = 0.30 // 3-5分钟: 30%
-		}
-		discountedSeconds += int64(float64(f.Duration) * rate)
-	}
-
-	// 数量惩罚
-	fragmentCount := len(fragments)
-	var quantityPenalty float64 = 1.0
-	switch {
-	case fragmentCount > 5:
-		quantityPenalty = 0.5 // >5个: 50%
-	case fragmentCount >= 4:
-		quantityPenalty = 0.7 // 4-5个: 70%
-	case fragmentCount == 3:
-		quantityPenalty = 0.9 // 3个: 90%
-	}
-
-	discountedSeconds = int64(float64(discountedSeconds) * quantityPenalty)
-
-	// 设置标签
-	tag := req.Tag
-	if tag == "" {
-		tag = "碎片专注 ⚡"
-	} else {
-		tag = stripHTMLTags(req.Tag)
-	}
-	tagColor := req.TagColor
-	if tagColor == "" {
-		tagColor = "#ff9f43" // 橙色区分
-	}
-
-	// 创建折扣后的专注记录
-	session := model.StudySession{
-		UserID:    userID,
-		Duration:  int(discountedSeconds),
-		Date:      today,
-		StartedAt: time.Now(),
-		Tag:       tag,
-		TagColor:  tagColor,
+		totalSeconds += int64(f.Duration)
+		sessions = append(sessions, model.StudySession{
+			UserID:    userID,
+			Duration:  f.Duration,
+			Date:      today,
+			StartedAt: f.CreatedAt,
+			Tag:       f.Tag,
+			TagColor:  f.TagColor,
+		})
 	}
 
 	// 使用事务确保原子性
 	tx := database.Begin()
 
-	// 创建专注记录
-	if err := tx.Create(&session).Error; err != nil {
+	// 批量创建专注记录
+	if err := tx.Create(&sessions).Error; err != nil {
 		tx.Rollback()
 		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "创建专注记录失败"))
 		return
 	}
 
-	// 删除已兑换的碎片
+	// 删除已提现的碎片
 	if err := tx.Where("user_id = ? AND date = ?", userID, today).
 		Delete(&model.FocusFragment{}).Error; err != nil {
 		tx.Rollback()
@@ -791,21 +678,14 @@ func CashoutFragments(w http.ResponseWriter, r *http.Request) {
 
 	// 提交事务
 	if err := tx.Commit().Error; err != nil {
-		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "交易提交失败"))
+		sendJSON(w, http.StatusInternalServerError, model.ErrorResponse(500, "事务提交失败"))
 		return
 	}
 
-	// 计算实际折扣率
-	var discountRate float64
-	if totalRawSeconds > 0 {
-		discountRate = float64(discountedSeconds) / float64(totalRawSeconds)
-	}
-
 	response := model.CashoutFragmentsResponse{
-		RawMinutes:     totalRawSeconds / 60,
-		ActualMinutes:  discountedSeconds / 60,
-		Discount:       formatDiscount(discountRate),
-		ClearedCount:   len(fragments),
+		TotalMinutes: totalSeconds / 60,
+		SessionCount: len(sessions),
+		ClearedCount: len(fragments),
 	}
 
 	sendJSON(w, http.StatusOK, model.SuccessResponse(response))

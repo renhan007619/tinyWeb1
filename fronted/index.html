@@ -5115,24 +5115,19 @@
                     <div class="fragment-cashout-mini" id="fragmentCashoutMini" style="display:none">
                         <div class="fragment-mini-stats">
                             <div>累计 <strong id="miniTotalMins">0</strong> 分钟</div>
-                            <div>可兑 <strong id="miniDiscountedMins">0</strong> 分钟</div>
+                            <div>存多少 · 提多少</div>
                         </div>
                         <button class="fragment-mini-cashout-btn" id="miniCashoutBtn">
-                            <i class="fa-solid fa-coins"></i> 兑换
+                            <i class="fa-solid fa-coins"></i> 立刻提现
                         </button>
                     </div>
 
                     <!-- 简化的规则说明 -->
                     <div class="fragment-rules-mini">
-                        <div class="fragment-rules-title-mini"><i class="fa-solid fa-circle-info"></i> 兑换规则</div>
+                        <div class="fragment-rules-title-mini"><i class="fa-solid fa-circle-info"></i> 提现规则</div>
                         <div class="rules-grid">
-                            <span>≥40分</span><span class="rate-full">100%</span>
-                            <span>30-40</span><span>85%</span>
-                            <span>20-30</span><span>70%</span>
-                            <span>15-20</span><span>60%</span>
-                            <span>10-15</span><span>50%</span>
-                            <span>5-10</span><span>40%</span>
-                            <span>3-5</span><span>30%</span>
+                            <span>原额存入</span><span class="rate-full">原额提现</span>
+                            <span>无折扣</span><span>次日清零</span>
                         </div>
                     </div>
                 </div>
@@ -5281,7 +5276,7 @@
                     <i class="fa-solid fa-play"></i> 继续专注
                 </button>
                 <button class="pause-btn save-fragment" id="pauseSaveFragmentBtn">
-                    <i class="fa-solid fa-puzzle-piece"></i> 存碎片 (<span id="pauseFragmentMins">10</span>分)
+                    <i class="fa-solid fa-puzzle-piece"></i> 存入碎片银行 (<span id="pauseFragmentMins">10</span>分)
                 </button>
                 <button class="pause-btn discard" id="pauseDiscardBtn">
                     <i class="fa-solid fa-trash"></i> 放弃
@@ -5289,7 +5284,7 @@
             </div>
             <div class="pause-hint" id="pauseHint">
                 <i class="fa-solid fa-circle-info"></i>
-                专注超过 3 分钟可存碎片，按 60% 折扣计入<br>
+                专注超过 3 分钟可存入碎片银行，随时原额提现<br>
                 碎片次日自动清零
             </div>
         </div>
@@ -7102,7 +7097,7 @@
                     this.loadFragments();  // 加载碎片银行（专注碎片功能新增）
                 }
 
-                // 碎片银行兑换按钮（专注碎片功能新增）
+                // 碎片银行提现按钮（专注碎片功能新增）
                 var miniCashoutBtn = document.getElementById('miniCashoutBtn');
                 if (miniCashoutBtn) {
                     miniCashoutBtn.addEventListener('click', function() {
@@ -7401,11 +7396,11 @@
                 if (focusedMins < 3) {
                     saveBtn.disabled = true;
                     saveBtn.classList.add('disabled');
-                    document.getElementById('pauseHint').innerHTML = '<i class="fa-solid fa-circle-info"></i> 专注超过 3 分钟才能存碎片哦';
+                    document.getElementById('pauseHint').innerHTML = '<i class="fa-solid fa-circle-info"></i> 专注超过 3 分钟才能存入碎片银行哦';
                 } else {
                     saveBtn.disabled = false;
                     saveBtn.classList.remove('disabled');
-                    document.getElementById('pauseHint').innerHTML = '<i class="fa-solid fa-circle-info"></i> 专注超过 3 分钟可存碎片，按 60% 折扣计入<br>碎片次日自动清零';
+                    document.getElementById('pauseHint').innerHTML = '<i class="fa-solid fa-circle-info"></i> 原额存入 ' + focusedMins + ' 分钟，随时可原额提现<br>碎片次日自动清零';
                 }
 
                 // 显示弹窗
@@ -7459,7 +7454,7 @@
                 .then(function(res) {
                     if (res.code === 0) {
                         var mins = Math.floor(duration / 60);
-                        self.showToast('✅ 已存入 ' + mins + ' 分钟碎片');
+                        self.showToast('✅ 已存入碎片银行 ' + mins + ' 分钟');
                         self.reset();
                         self.loadFragments();  // 刷新碎片银行
                     } else if (res.code === 401) {
@@ -7500,7 +7495,6 @@
                 var container = document.getElementById('fragmentListContainer');
                 var cashoutArea = document.getElementById('fragmentCashoutMini');
                 var miniTotalMins = document.getElementById('miniTotalMins');
-                var miniDiscountedMins = document.getElementById('miniDiscountedMins');
                 var miniCashoutBtn = document.getElementById('miniCashoutBtn');
 
                 if (!data.fragments || data.fragments.length === 0) {
@@ -7521,51 +7515,36 @@
                 html += '</div>';
                 container.innerHTML = html;
 
-                // 显示兑换区域
+                // 显示提现区域（原额提现，累计即可提现）
                 if (miniTotalMins) miniTotalMins.textContent = data.total_minutes;
-                if (miniDiscountedMins) miniDiscountedMins.textContent = data.discounted_mins;
                 if (cashoutArea) cashoutArea.style.display = 'block';
-
-                // 根据折扣率显示不同样式
                 if (miniCashoutBtn) {
-                    if (data.discounted_mins >= data.total_minutes * 0.95) {
-                        // 接近全额
-                        miniCashoutBtn.innerHTML = '<i class="fa-solid fa-coins"></i> 全额兑换';
-                        miniCashoutBtn.style.background = 'linear-gradient(135deg, #6c5ce7, #a29bfe)';
-                    } else {
-                        miniCashoutBtn.innerHTML = '<i class="fa-solid fa-coins"></i> 折扣兑换';
-                        miniCashoutBtn.style.background = 'linear-gradient(135deg, #ff9f43, #ff6b6b)';
-                    }
+                    miniCashoutBtn.innerHTML = '<i class="fa-solid fa-coins"></i> 立刻提现';
+                    miniCashoutBtn.style.background = 'linear-gradient(135deg, #6c5ce7, #a29bfe)';
                 }
             },
 
-            // ---- 兑现碎片（专注碎片功能新增）----
+            // ---- 提现碎片（专注碎片功能新增）----
             cashoutFragments: function() {
                 var self = this;
                 var token = AuthManager.getToken() || '';
                 fetch(this.API_BASE + '/api/focus/fragments/cashout', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({
-                        tag: '碎片专注 ⚡',
-                        tag_color: '#ff9f43'
-                    })
+                    }
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(res) {
                     if (res.code === 0) {
                         var data = res.data;
-                        var discountText = data.discount === '100%' ? '💯 全额兑换！' : '💰 兑换成功！';
-                        self.showToast(discountText + data.raw_minutes + '分钟 → ' + data.actual_minutes + '分钟');
+                        self.showToast('✅ 提现成功！' + data.total_minutes + ' 分钟已计入今日专注时间');
                         self.loadFragments();  // 刷新碎片银行
                         self.loadTodayStats(); // 刷新今日统计
                     } else if (res.code === 401) {
                         self.showToast('❌ 请先登录');
                     } else {
-                        self.showToast('❌ ' + (res.message || '兑换失败'));
+                        self.showToast('❌ ' + (res.message || '提现失败'));
                     }
                 })
                 .catch(function(err) {
@@ -7647,13 +7626,13 @@
                 var focusedMins = Math.floor(focusedSeconds / 60);
 
                 if (focusedMins < 3) {
-                    this.showToast('⏱️ 专注超过 3 分钟才能存碎片');
+                    this.showToast('⏱️ 专注超过 3 分钟才能存入碎片银行');
                     return false;
                 }
 
-                // 改变按钮为保存碎片
+                // 改变按钮为存入碎片银行
                 resetBtn.innerHTML = '<i class="fa-solid fa-puzzle-piece"></i>';
-                resetBtn.title = '存 ' + focusedMins + ' 分钟碎片';
+                resetBtn.title = '存入碎片银行 ' + focusedMins + ' 分钟';
                 resetBtn.classList.add('fragment-mode');
 
                 // 点击时保存碎片
@@ -7661,7 +7640,7 @@
                     self.saveFragment(focusedSeconds);
                 };
 
-                this.showToast('💡 点击右侧 🧩 按钮存入 ' + focusedMins + ' 分钟碎片');
+                this.showToast('💡 点击右侧 🧩 按钮存入碎片银行 ' + focusedMins + ' 分钟');
                 return true;
             },
 

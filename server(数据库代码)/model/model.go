@@ -400,9 +400,9 @@ func (StudySession) TableName() string {
 // 对应数据库 focus_fragments 表，存储用户中断的专注时间碎片
 //
 // 设计思路：
-//   - 用户暂停专注时可以选择将已专注时间存入碎片银行
+//   - 用户暂停专注时可以选择将已专注时间存入碎片银行（原额存入，不折扣）
 //   - 碎片次日 0 点自动过期清零，制造紧迫感
-//   - 用户可以随时将碎片按折扣率（默认60%）兑换成专注记录
+//   - 用户可以随时将碎片原额提现成专注记录（存多少提多少，无惩罚机制）
 //   - 小于 3 分钟的专注不能被保存为碎片
 //
 // 数据库表结构（由 GORM AutoMigrate 自动创建）：
@@ -432,19 +432,6 @@ func (FocusFragment) TableName() string {
 	return "focus_fragments"
 }
 
-// StudySessionFragment 是 StudySession 的扩展，支持标记碎片兑换记录
-type StudySessionFragment struct {
-	StudySession
-	IsFragment   bool  `gorm:"default:false" json:"is_fragment"`    // 是否由碎片兑换
-	RawDuration  int   `json:"raw_duration"`                         // 原始碎片总时间（折扣前）
-	DiscountRate int   `gorm:"default:60" json:"discount_rate"`      // 折扣率（百分比，默认60）
-}
-
-// TableName 指定 StudySessionFragment 对应的数据库表名
-func (StudySessionFragment) TableName() string {
-	return "study_sessions"
-}
-
 // ---- 专注碎片 API 请求/响应结构体 ----
 
 // SaveFragmentRequest 保存专注碎片的请求体
@@ -467,24 +454,17 @@ type FragmentItem struct {
 
 // FragmentListResponse 碎片列表响应
 type FragmentListResponse struct {
-	Fragments      []FragmentItem `json:"fragments"`        // 碎片列表
-	TotalSeconds   int64          `json:"total_seconds"`    // 总秒数
-	TotalMinutes   int            `json:"total_minutes"`    // 总分钟数
-	DiscountedMins int            `json:"discounted_mins"`  // 折扣后分钟数（60%）
+	Fragments    []FragmentItem `json:"fragments"`       // 碎片列表
+	TotalSeconds int64          `json:"total_seconds"`   // 总秒数
+	TotalMinutes int            `json:"total_minutes"`   // 总分钟数
+	CashoutMins  int            `json:"cashout_mins"`    // 可提现分钟数（原额提现，等于总分钟数）
 }
 
-// CashoutFragmentsRequest 兑现碎片的请求体
-type CashoutFragmentsRequest struct {
-	Tag      string `json:"tag"`       // 兑现后的标签名
-	TagColor string `json:"tag_color"` // 兑现后的标签颜色
-}
-
-// CashoutFragmentsResponse 兑现碎片响应
+// CashoutFragmentsResponse 提现碎片响应
 type CashoutFragmentsResponse struct {
-	RawMinutes     int64  `json:"raw_minutes"`      // 原始碎片分钟数
-	ActualMinutes  int64  `json:"actual_minutes"`   // 实际计入分钟数（折扣后）
-	Discount       string `json:"discount"`         // 折扣率（如"60%"）
-	ClearedCount   int    `json:"cleared_count"`    // 清空的碎片数量
+	TotalMinutes int64 `json:"total_minutes"`  // 提现总分钟数（原额计入专注时间）
+	SessionCount int   `json:"session_count"`  // 生成的专注记录条数（每条碎片一条，保留各自标签）
+	ClearedCount int   `json:"cleared_count"`  // 清空的碎片数量
 }
 
 // StudyTag 用户自定义的专注标签模板
