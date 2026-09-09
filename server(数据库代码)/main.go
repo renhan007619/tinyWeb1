@@ -426,6 +426,33 @@ func startServer() {
 		}
 	}))
 
+	// ---- 每日完成度自评接口（任务完成度评价功能新增）----
+	// 评价窗口（北京时间）：当天 18:00 后评今天，次日全天可补评/修改昨天，D+2 起锁定
+	// 评价弹窗初始状态
+	mux.HandleFunc("/api/focus/review/editable", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetReviewEditable(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 提交/修改某天评级（服务端校验窗口）
+	mux.HandleFunc("/api/focus/review", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handler.SaveReview(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+	// 指定日期范围内的评级列表（柱状图柱顶标注用）
+	mux.HandleFunc("/api/focus/reviews", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handler.GetReviewsRange(w, r)
+		} else {
+			sendMethodNotAllowed(w)
+		}
+	}))
+
 	// ---- 专注碎片接口（碎片存储功能新增）----
 	// 保存碎片
 	mux.HandleFunc("/api/focus/fragment", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {

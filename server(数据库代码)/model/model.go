@@ -377,14 +377,16 @@ type PageResponse struct {
 //	| started_at | datetime(3)   | 开始专注的时间               |
 //	| tag        | varchar(50)   | 标签名（如"Go语言开发"）      |
 //	| tag_color  | varchar(7)    | 标签颜色（如"#FF6B6B"）      |
+//	| completion_level | varchar(10)| 当天完成度 low/medium/high（按天同步，NULL=未评）|
 type StudySession struct {
 	gorm.Model
-	UserID    uint      `gorm:"index;not null" json:"user_id"`                      // 关联用户ID
-	Duration  int       `gorm:"not null" json:"duration"`                           // 本次专注秒数
-	Date      string    `gorm:"type:date;index;not null" json:"date"`               // 日期 YYYY-MM-DD
-	StartedAt time.Time `gorm:"not null" json:"started_at"`                         // 开始时间
-	Tag       string    `gorm:"type:varchar(50);index;not null" json:"tag"`         // 标签名
-	TagColor  string    `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
+	UserID           uint      `gorm:"index;not null" json:"user_id"`                      // 关联用户ID
+	Duration         int       `gorm:"not null" json:"duration"`                           // 本次专注秒数
+	Date             string    `gorm:"type:date;index;not null" json:"date"`               // 日期 YYYY-MM-DD
+	StartedAt        time.Time `gorm:"not null" json:"started_at"`                         // 开始时间
+	Tag              string    `gorm:"type:varchar(50);index;not null" json:"tag"`         // 标签名
+	TagColor         string    `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
+	CompletionLevel  string    `gorm:"type:varchar(10);index;default:NULL" json:"completion_level,omitempty"` // 当日完成度（任务完成度评价功能新增；NULL=未评，default:NULL 保证新记录写入 NULL 而非空串）
 }
 
 // TableName 指定 StudySession 对应的数据库表名
@@ -430,6 +432,40 @@ type FocusFragment struct {
 // TableName 指定 FocusFragment 对应的数据库表名
 func (FocusFragment) TableName() string {
 	return "focus_fragments"
+}
+
+// ---- 每日完成度 API 请求/响应结构体（任务完成度评价功能新增）----
+// 说明：完成度以"天"为单位记录在 study_sessions.completion_level 列上
+// （评价时按天同步更新当天所有会话行，聚合时按天取非空评级），不再单独建表。
+
+// SaveReviewRequest 提交/修改完成度评价的请求体
+// 前端 POST /api/focus/review 时提交的 JSON 数据
+type SaveReviewRequest struct {
+	Date  string `json:"date" binding:"required"`  // 被评价的日期 YYYY-MM-DD
+	Level string `json:"level" binding:"required"` // low / medium / high
+}
+
+// ReviewItem 单个日期的可评价状态
+type ReviewItem struct {
+	Date    string `json:"date"`     // 日期 YYYY-MM-DD
+	Level   string `json:"level"`    // 当前评级：low/medium/high，空串=未评
+	CanEdit bool   `json:"can_edit"` // 当前是否允许评价/修改
+	Hint    string `json:"hint"`     // 不可评价时的原因提示（可为空）
+}
+
+// ReviewEditableResponse 评价弹窗初始数据
+// GET /api/focus/review/editable 返回的数据
+type ReviewEditableResponse struct {
+	ServerTime string     `json:"server_time"` // 服务器北京时间（用于前端提示）
+	Today      ReviewItem `json:"today"`       // 今天（18:00 后可评）
+	Yesterday  ReviewItem `json:"yesterday"`   // 昨天（全天可评）
+}
+
+// ReviewRangeResponse 指定日期范围内的完成度评级列表
+// GET /api/focus/reviews?start=..&end=.. 返回的数据（柱状图柱顶标注用）
+// 只包含已评价的日期，未评价的日期由前端根据"是否有专注记录"决定是否标注"未"
+type ReviewRangeResponse struct {
+	Items []ReviewItem `json:"items"`
 }
 
 // ---- 专注碎片 API 请求/响应结构体 ----

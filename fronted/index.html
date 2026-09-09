@@ -3273,6 +3273,114 @@
             color: #6c5ce7;
         }
 
+        /* ---- 每日完成度自评（任务完成度评价功能新增）---- */
+        /* 报告按钮 + 完成度按钮的小按钮组 */
+        .focus-btns {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            align-self: center;
+        }
+        /* 今日完成度入口按钮：已评时给图标一个主题色提醒 */
+        .focus-report-btn.focus-review-btn.has-review {
+            color: #6c5ce7;
+            border-color: rgba(108, 92, 231, 0.5);
+        }
+
+        /* 完成度评价弹窗 */
+        .focus-review-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10020;
+            background: rgba(0,0,0,0.45);
+            align-items: center;
+            justify-content: center;
+        }
+        .focus-review-overlay.show { display: flex; }
+        .focus-review-modal {
+            background: var(--card-bg);
+            border: 1px solid var(--avatar-border);
+            border-radius: 18px;
+            padding: 20px;
+            width: 300px;
+            max-width: 88vw;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.28);
+            animation: bubblePopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-height: 86vh;
+            overflow-y: auto;
+        }
+        .focus-review-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .focus-review-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.3rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 2px;
+        }
+        .focus-review-close:hover { color: #ff4d4d; }
+        .focus-review-desc {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+            line-height: 1.7;
+        }
+        .focus-review-day {
+            background: var(--social-bg);
+            border: 1px solid var(--avatar-border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .focus-review-day.locked { opacity: 0.55; }
+        .focus-review-day-title {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .focus-review-levels { display: flex; gap: 8px; }
+        .focus-review-level {
+            flex: 1;
+            padding: 7px 0;
+            border-radius: 10px;
+            border: 1.5px solid var(--avatar-border);
+            background: transparent;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .focus-review-level:hover { border-color: var(--accent); }
+        .focus-review-level.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .focus-review-level:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .focus-review-note {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
         /* ==================== 专注碎片银行侧边面板（专注碎片功能新增）==================== */
         .focus-fragment-sidebar {
             position: fixed;
@@ -5151,9 +5259,14 @@
                     <div class="focus-stat-value" id="focusTodayCount">0次</div>
                     <div class="focus-stat-label">专注次数</div>
                 </div>
-                <button class="focus-report-btn" id="focusReportBtn" title="查看报告">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </button>
+                <div class="focus-btns">
+                    <button class="focus-report-btn" id="focusReportBtn" title="查看报告">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </button>
+                    <button class="focus-report-btn focus-review-btn" id="focusReviewBtn" title="评价每日完成度：18:00后评今天，明天全天可补评/修改昨天">
+                        <i class="fa-solid fa-flag"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- 标签时长分布 -->
@@ -5300,6 +5413,42 @@
                 <button class="btn-cancel" id="focusDeleteCancelBtn">取消</button>
                 <button class="btn-confirm-delete" id="focusDeleteConfirmBtn">确认删除</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==================== 完成度评价弹窗（任务完成度评价功能新增）==================== -->
+    <!-- 规则：当天 18:00（北京时间）后可评"今天"，次日全天可补评/修改"昨天"，再往后锁定 -->
+    <div class="focus-review-overlay" id="focusReviewOverlay">
+        <div class="focus-review-modal">
+            <div class="focus-review-head">
+                <i class="fa-solid fa-flag"></i> 每日完成度
+                <button class="focus-review-close" id="focusReviewClose">&times;</button>
+            </div>
+            <div class="focus-review-desc">
+                对照当天任务完成量自评：完成得多选「高」。<br>
+                时间花得少但完成得多 = 效率高 👍<br>
+                当天 18:00 后开评，次日全天可补评或修改
+            </div>
+
+            <div class="focus-review-day" id="focusReviewTodayBlock">
+                <div class="focus-review-day-title" id="focusReviewTodayTitle">今天 · 未评</div>
+                <div class="focus-review-levels">
+                    <button class="focus-review-level" data-level="low">低</button>
+                    <button class="focus-review-level" data-level="medium">中</button>
+                    <button class="focus-review-level" data-level="high">高</button>
+                </div>
+            </div>
+
+            <div class="focus-review-day" id="focusReviewYesterdayBlock">
+                <div class="focus-review-day-title" id="focusReviewYesterdayTitle">昨天 · 未评</div>
+                <div class="focus-review-levels">
+                    <button class="focus-review-level" data-level="low">低</button>
+                    <button class="focus-review-level" data-level="medium">中</button>
+                    <button class="focus-review-level" data-level="high">高</button>
+                </div>
+            </div>
+
+            <div class="focus-review-note" id="focusReviewNote"></div>
         </div>
     </div>
 
@@ -7106,6 +7255,11 @@
                 // 请求桌面通知权限
                 this._requestNotificationPermission();
 
+                // 完成度评价按钮（点击打开评价弹窗）
+                document.getElementById('focusReviewBtn').addEventListener('click', function() {
+                    self.openReview();
+                });
+
                 // 报告按钮（点击切换显示/隐藏）
                 document.getElementById('focusReportBtn').addEventListener('click', function() {
                     var bubble = document.getElementById('focusReportBubble');
@@ -8369,6 +8523,13 @@
             // 数字显示开关（默认显示）
             _showNumbers: true,
 
+            // 当前条形图每根柱子的完成度（null=不标注；''=有记录未评→未；low/medium/high）
+            _currentDayLevels: null,
+
+            // 评价弹窗状态（今天/昨天的评级与可评性）
+            _reviewState: null,
+            _reviewEventsBound: false,
+
             // 当前条形图数据（用于计算平均值）
             _barChartData: [],
 
@@ -8748,6 +8909,8 @@
                         // 构建日期标签和数据（根据当前周次偏移）
                         var dayLabels = [];
                         var dayData = [];
+                        // 每根柱子的完成度标注状态：null=不标注 / ''=有记录未评(显示"未") / low|medium|high
+                        var dayLevels = [];
                         
                         // 使用已计算的 weekDates 生成标签和数据（周一到周日）
                         for (var i = 0; i < 7; i++) {
@@ -8755,6 +8918,7 @@
                             var shortLabel = (d.getMonth() + 1) + '/' + d.getDate();
                             dayLabels.push(shortLabel);
                             dayData.push(0); // 默认0，后面再填充实际数据
+                            dayLevels.push(null);
                         }
 
                         // 处理返回的数据
@@ -8821,22 +8985,23 @@
 
                         // 统一紫色（不再使用热力阶梯色）
                         var barColor = '#6c5ce7';
+                        // 完成度等级 → 中文显示（柱顶标注 / tooltip 用）
+                        var levelCN = { low: '低', medium: '中', high: '高' };
                         
                         var ctx = document.getElementById('focusBarChart').getContext('2d');
                         
-                        // 创建自定义插件：在条形上方显示数字 + 平均值虚线
+                        // 创建自定义插件：柱顶显示专注数字 + 完成度标注（未/低/中/高）+ 平均值虚线
                         var numberLabelPlugin = {
                             id: 'numberLabels',
                             afterDatasetsDraw: function(chart) {
                                 var ctx2 = chart.ctx;
                                 
-                                // 只有开启数字显示时才绘制
-                                if (self._showNumbers) {
-                                    chart.data.datasets.forEach(function(dataset, i) {
+                                // 逐柱绘制：数字开关只控制数字；完成度标注（未/低/中/高）始终显示
+                                chart.data.datasets.forEach(function(dataset, i) {
                                         var meta = chart.getDatasetMeta(i);
                                         meta.data.forEach(function(bar, index) {
                                             var value = dataset.data[index];
-                                            if (value > 0) {
+                                            if (self._showNumbers && value > 0) {
                                                 ctx2.save();
                                                 ctx2.fillStyle = textColor;
                                                 ctx2.font = 'bold 10px "Noto Sans SC", sans-serif';
@@ -8845,9 +9010,26 @@
                                                 ctx2.fillText(value, bar.x, bar.y - 2);
                                                 ctx2.restore();
                                             }
+
+                                            // 每日完成度标注（画在柱顶数字上方第二行）：
+                                            // 已评 → 高/中/低；有记录未评 → 未；无记录无评价 → 不画
+                                            var lv = (self._currentDayLevels && index < self._currentDayLevels.length)
+                                                ? self._currentDayLevels[index] : null;
+                                            if (lv !== null && lv !== undefined) {
+                                                var lvText = lv === '' ? '未' : (levelCN[lv] || lv);
+                                                var lvColor = lv === 'high' ? '#00b894'
+                                                    : (lv === 'medium' ? '#e67e22'
+                                                    : (lv === 'low' ? '#e17055' : textColor));
+                                                ctx2.save();
+                                                ctx2.fillStyle = lvColor;
+                                                ctx2.font = '9px "Noto Sans SC", sans-serif';
+                                                ctx2.textAlign = 'center';
+                                                ctx2.textBaseline = 'bottom';
+                                                ctx2.fillText(lvText, bar.x, bar.y - 22);
+                                                ctx2.restore();
+                                            }
                                         });
                                     });
-                                }
 
                                 // 绘制平均值虚线（如果开启）
                                 if (self._showAvgLine && avg > 0) {
@@ -8893,6 +9075,7 @@
                                 scales: {
                                     y: {
                                         beginAtZero: true,
+                                        grace: '30%', // 顶部留出柱顶数字+完成度两行标注的空间
                                         grid: { color: gridColor },
                                         ticks: { color: textColor, font: { size: 10 } }
                                     },
@@ -8906,7 +9089,13 @@
                                     tooltip: {
                                         callbacks: {
                                             label: function(ctx) {
-                                                return ctx.parsed.y + '分钟';
+                                                var mins = ctx.parsed.y;
+                                                var lv = (self._currentDayLevels && ctx.dataIndex < self._currentDayLevels.length)
+                                                    ? self._currentDayLevels[ctx.dataIndex] : null;
+                                                var extra = '';
+                                                if (lv === '') extra = ' · 完成度：未评';
+                                                else if (lv && levelCN[lv]) extra = ' · 完成度：' + levelCN[lv];
+                                                return mins + '分钟' + extra;
                                             }
                                         }
                                     }
@@ -8917,6 +9106,42 @@
 
                         // 绑定平均值和数字开关按钮事件（只绑定一次）
                         self._bindToggleEvents();
+
+                        // ---- 异步拉取该周每日完成度评级，刷新柱顶标注（未/低/中/高）----
+                        // 评级来自独立接口，渲染完成后一帧补上，避免拖慢柱高数据首屏
+                        var reviewApiUrl = self.API_BASE + '/api/focus/reviews?start=' + startDateStr + '&end=' + endDateStr;
+                        AuthManager.fetchWithAuth(reviewApiUrl)
+                            .then(function(r2) { return r2.json(); })
+                            .then(function(rvRes) {
+                                var reviewMap = {};
+                                if (rvRes.code === 0 && rvRes.data && rvRes.data.items) {
+                                    rvRes.data.items.forEach(function(it) {
+                                        if (it && it.date) reviewMap[it.date.substring(0, 10)] = it.level || '';
+                                    });
+                                }
+                                // 逐柱确定标注：有评级→高/中/低；有专注记录但未评→"未"；无记录无评价→不标注
+                                var wd = self._getWeekDates(self._chartWeekOffset);
+                                for (var k = 0; k < 7; k++) {
+                                    var dk = wd[k];
+                                    var dateKey = dk.getFullYear() + '-' +
+                                        String(dk.getMonth() + 1).padStart(2, '0') + '-' +
+                                        String(dk.getDate()).padStart(2, '0');
+                                    if (reviewMap[dateKey] !== undefined) {
+                                        dayLevels[k] = reviewMap[dateKey];
+                                    } else if (dayData[k] > 0) {
+                                        dayLevels[k] = ''; // 有记录但未评价
+                                    } else {
+                                        dayLevels[k] = null; // 无记录且无评价
+                                    }
+                                }
+                                self._currentDayLevels = dayLevels;
+                                if (self._barChart) {
+                                    self._barChart.update();
+                                }
+                            })
+                            .catch(function(err) {
+                                console.warn('[FocusTimer] 加载完成度评级失败:', err);
+                            });
                     })
                     .catch(function(err) {
                         console.warn('[FocusTimer] 加载条形图数据失败:', err);
@@ -9088,6 +9313,149 @@
                         document.getElementById('focusHistoryList').innerHTML =
                             '<div class="focus-history-empty">加载失败</div>';
                     });
+            },
+
+            // ---- 每日完成度评价（任务完成度评价功能新增）----
+            // 规则：当天 18:00（北京时间）后可评"今天"，次日全天可补评/修改"昨天"
+
+            // ---- 打开完成度评价弹窗 ----
+            openReview: function() {
+                var self = this;
+                var overlay = document.getElementById('focusReviewOverlay');
+
+                // 首次打开时绑定弹窗内事件（只绑定一次）
+                if (!this._reviewEventsBound) {
+                    document.getElementById('focusReviewClose').addEventListener('click', function() {
+                        self.closeReview();
+                    });
+                    overlay.addEventListener('click', function(e) {
+                        if (e.target === overlay) self.closeReview();
+                    });
+                    // 事件委托：点击"低/中/高"任一按钮即保存对应日期
+                    overlay.addEventListener('click', function(e) {
+                        var btn = e.target.closest ? e.target.closest('.focus-review-level') : null;
+                        if (!btn || btn.disabled) return;
+                        var block = btn.closest('.focus-review-day');
+                        if (!block) return;
+                        var date = block.getAttribute('data-date');
+                        if (!date) return;
+                        self._saveReview(date, btn.getAttribute('data-level'));
+                    });
+                    this._reviewEventsBound = true;
+                }
+
+                // 拉取今天/昨天的可评状态与当前评级
+                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/review/editable')
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.code !== 0 || !res.data) {
+                            self.showToast('❌ ' + (res.message || '加载评价状态失败'));
+                            return;
+                        }
+                        self._reviewState = { today: res.data.today, yesterday: res.data.yesterday };
+                        self._renderReviewState();
+                        overlay.classList.add('show');
+                    })
+                    .catch(function(err) {
+                        console.warn('[FocusTimer] 加载完成度评价状态失败:', err);
+                        self.showToast('❌ 网络错误，请重试');
+                    });
+            },
+
+            // ---- 渲染评价弹窗（今天/昨天各自的评级与可评性）----
+            _renderReviewState: function() {
+                var st = this._reviewState;
+                if (!st) return;
+                var levelCN = { low: '低', medium: '中', high: '高' };
+                var dateLabel = function(d) { return d && d.date ? d.date.substring(5) : ''; };
+
+                var todayBlock = document.getElementById('focusReviewTodayBlock');
+                todayBlock.setAttribute('data-date', st.today.date);
+                todayBlock.classList.toggle('locked', !st.today.can_edit);
+                document.getElementById('focusReviewTodayTitle').textContent =
+                    '今天 ' + dateLabel(st.today) + ' · ' + (st.today.level ? ('当前：' + levelCN[st.today.level]) : '未评');
+                this._setReviewActive(todayBlock, st.today.level);
+                todayBlock.querySelectorAll('.focus-review-level').forEach(function(b) {
+                    b.disabled = !st.today.can_edit;
+                });
+
+                var yBlock = document.getElementById('focusReviewYesterdayBlock');
+                yBlock.setAttribute('data-date', st.yesterday.date);
+                yBlock.classList.toggle('locked', !st.yesterday.can_edit);
+                document.getElementById('focusReviewYesterdayTitle').textContent =
+                    '昨天 ' + dateLabel(st.yesterday) + ' · ' + (st.yesterday.level ? ('当前：' + levelCN[st.yesterday.level]) : '未评');
+                this._setReviewActive(yBlock, st.yesterday.level);
+                yBlock.querySelectorAll('.focus-review-level').forEach(function(b) {
+                    b.disabled = false;
+                });
+
+                var note = document.getElementById('focusReviewNote');
+                var tips = [];
+                if (!st.today.can_edit && st.today.hint) tips.push('今天：' + st.today.hint);
+                tips.push('已评的日期在次日 24:00 前仍可修改');
+                note.textContent = tips.join('；');
+            },
+
+            // ---- 高亮选中的评级按钮 ----
+            _setReviewActive: function(block, level) {
+                block.querySelectorAll('.focus-review-level').forEach(function(b) {
+                    b.classList.toggle('active', b.getAttribute('data-level') === level);
+                });
+            },
+
+            // ---- 保存某天的完成度评级 ----
+            _saveReview: function(date, level) {
+                var self = this;
+                AuthManager.fetchWithAuth(this.API_BASE + '/api/focus/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: date, level: level })
+                })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.code !== 0) {
+                            self.showToast('❌ ' + (res.message || '保存失败'));
+                            return;
+                        }
+                        var levelCN = { low: '低', medium: '中', high: '高' };
+                        var which = (self._reviewState && date === self._reviewState.today.date) ? '今天' : '昨天';
+                        self.showToast('✅ 已记录' + which + '完成度：' + (levelCN[level] || level));
+                        // 更新本地状态并刷新按钮高亮
+                        if (self._reviewState) {
+                            if (date === self._reviewState.today.date) self._reviewState.today.level = level;
+                            if (date === self._reviewState.yesterday.date) self._reviewState.yesterday.level = level;
+                        }
+                        self._renderReviewState();
+                        self._updateReviewEntryBadge();
+                        // 报告面板打开时刷新柱状图标注（柱子上的 未/低/中/高）
+                        var bubble = document.getElementById('focusReportBubble');
+                        if (bubble && bubble.classList.contains('show')) {
+                            self.drawBarChart();
+                        }
+                    })
+                    .catch(function(err) {
+                        console.warn('[FocusTimer] 保存完成度评价失败:', err);
+                        self.showToast('❌ 网络错误，请重试');
+                    });
+            },
+
+            // ---- 主面板完成度入口按钮：有任意评级时加主题色提醒 ----
+            _updateReviewEntryBadge: function() {
+                var st = this._reviewState;
+                var btn = document.getElementById('focusReviewBtn');
+                if (!btn) return;
+                var rated = st && ((st.today && st.today.level) || (st.yesterday && st.yesterday.level));
+                if (rated) {
+                    btn.classList.add('has-review');
+                } else {
+                    btn.classList.remove('has-review');
+                }
+            },
+
+            // ---- 关闭完成度评价弹窗 ----
+            closeReview: function() {
+                var overlay = document.getElementById('focusReviewOverlay');
+                overlay.classList.remove('show');
             },
 
             // ---- HTML转义防XSS ----
