@@ -1,7 +1,7 @@
 // Package handler 每日完成度自评（Daily Review）相关 HTTP API handlers
 // =============================================
 // 作用：
-//   让用户按天对"任务完成度"自评（低/中/高），与专注时长解耦，
+//   让用户按天对"任务完成度"自评（六档：低/中低/中/中高/高/非常高），与专注时长解耦，
 //   用于识别"用时少但任务完成多"的高效日：时长短 + 完成度高 = 效率高。
 //
 // 存储设计（按用户要求，不加新表）：
@@ -38,11 +38,14 @@ import (
 	"tinyweb1/model"
 )
 
-// 完成度三档取值（与前端展示 低/中/高 对应）
+// 完成度六档取值（由低到高，与前端展示一一对应）
 const (
-	reviewLevelLow    = "low"
-	reviewLevelMedium = "medium"
-	reviewLevelHigh   = "high"
+	reviewLevelLow        = "low"
+	reviewLevelMediumLow  = "medium_low"
+	reviewLevelMedium     = "medium"
+	reviewLevelMediumHigh = "medium_high"
+	reviewLevelHigh       = "high"
+	reviewLevelVeryHigh   = "very_high"
 
 	// reviewOpenHour 当天可评价的起始小时（北京时间）
 	// 18:00 之前当天还在进行中，无法评判"今天整天的任务完成度"
@@ -65,9 +68,14 @@ func beijingNow() time.Time {
 	return time.Now().In(cstLocation)
 }
 
-// validReviewLevel 校验评级取值是否合法
+// validReviewLevel 校验评级取值是否合法（六档）
 func validReviewLevel(level string) bool {
-	return level == reviewLevelLow || level == reviewLevelMedium || level == reviewLevelHigh
+	switch level {
+	case reviewLevelLow, reviewLevelMediumLow, reviewLevelMedium,
+		reviewLevelMediumHigh, reviewLevelHigh, reviewLevelVeryHigh:
+		return true
+	}
+	return false
 }
 
 // normalizeDate 将日期字符串统一截取为 YYYY-MM-DD 前 10 位
@@ -103,11 +111,13 @@ func reviewWindow(date string) (bool, string) {
 }
 
 // loadDayReviewLevel 查询某一天当前的完成度评级
-// 返回该天所有会话行中非空的评级（MAX 忽略 NULL）；当天无记录或全未评时返回空串
+// 写入时当天所有会话行被同步为同一评级，故取任意一条非空记录即可
+// （不能用 MAX：六档取值 low/medium_low/... 的字典序与档位高低不一致）
+// 当天无记录或全未评时返回空串
 func loadDayReviewLevel(userID uint, date string) (string, error) {
 	var level sql.NullString
 	err := db.GetDB().Raw(
-		"SELECT MAX(completion_level) FROM study_sessions WHERE user_id = ? AND date = ? AND deleted_at IS NULL",
+		"SELECT completion_level FROM study_sessions WHERE user_id = ? AND date = ? AND completion_level IS NOT NULL AND deleted_at IS NULL LIMIT 1",
 		userID, date,
 	).Scan(&level).Error
 	if err != nil {
@@ -122,7 +132,7 @@ func loadDayReviewLevel(userID uint, date string) (string, error) {
 
 // GetReviewEditable 返回评价弹窗需要的初始状态：
 // 今天/昨天的日期字符串、当前评级（空=未评）、是否可评
-// 前端据此渲染：可评的日期可点选三档，18:00 前的"今天"置灰并给出提示
+// 前端据此渲染：可评的日期可点选六档，18:00 前的"今天"置灰并给出提示
 func GetReviewEditable(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	now := beijingNow()
@@ -170,7 +180,7 @@ func GetReviewEditable(w http.ResponseWriter, r *http.Request) {
 //
 // 校验规则（服务端权威判定，不信任前端）：
 //   - date 必须为 YYYY-MM-DD
-//   - level 必须为 low / medium / high
+//   - level 必须为六档之一：low / medium_low / medium / medium_high / high / very_high
 //   - date 必须处于可评价窗口：今天(≥18:00 北京) 或 昨天，其余一律 403 拒绝
 //   - 当天必须有专注记录（否则没有行可写评级，返回 400）
 func SaveReview(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +240,7 @@ func SaveReview(w http.ResponseWriter, r *http.Request) {
 //
 // 按天聚合取非空评级：SELECT date, MAX(completion_level) ... GROUP BY date
 // （同一天多条会话行共享同一评级，MAX 只用于剔除 NULL）
-// 前端拿到该周评级后，在柱状图的每根柱子上标注 未/低/中/高
+// 前端拿到该周评级后，在柱状图的每根柱子上标注 未/低/中低/中/中高/高/非常高
 func GetReviewsRange(w http.ResponseWriter, r *http.Request) {
 	startDate := r.URL.Query().Get("start")
 	endDate := r.URL.Query().Get("end")
@@ -247,12 +257,12 @@ func GetReviewsRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 按天聚合：同天全部行评级一致，MAX(completion_level) 只为剔除 NULL
+	// 按天去重：同天全部行评级一致（写评价时同步更新），DISTINCT 只用于剔除多行重复
+	// （不能 GROUP BY date + MAX：六档取值 low/medium_low/... 的字典序与档位高低不一致）
 	rows, err := db.GetDB().Model(&model.StudySession{}).
-		Select("date, MAX(completion_level) AS level").
+		Select("DISTINCT date, completion_level AS level").
 		Where("user_id = ? AND date >= ? AND date <= ? AND completion_level IS NOT NULL",
 			getUserID(r), startDate, endDate).
-		Group("date").
 		Order("date ASC").
 		Rows()
 	if err != nil {

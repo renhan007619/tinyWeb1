@@ -442,7 +442,7 @@ func (FocusFragment) TableName() string {
 // 前端 POST /api/focus/review 时提交的 JSON 数据
 type SaveReviewRequest struct {
 	Date  string `json:"date" binding:"required"`  // 被评价的日期 YYYY-MM-DD
-	Level string `json:"level" binding:"required"` // low / medium / high
+	Level string `json:"level" binding:"required"` // low / medium_low / medium / medium_high / high / very_high（六档）
 }
 
 // ReviewItem 单个日期的可评价状态

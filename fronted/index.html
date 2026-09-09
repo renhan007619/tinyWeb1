@@ -3350,15 +3350,20 @@
             margin-bottom: 8px;
             font-weight: 600;
         }
-        .focus-review-levels { display: flex; gap: 8px; }
+        .focus-review-levels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
         .focus-review-level {
-            flex: 1;
-            padding: 7px 0;
+            flex: 1 1 calc(33.333% - 6px);
+            box-sizing: border-box;
+            padding: 8px 0;
             border-radius: 10px;
             border: 1.5px solid var(--avatar-border);
             background: transparent;
             color: var(--text-main);
-            font-size: 0.8rem;
+            font-size: 0.82rem;
             cursor: pointer;
             transition: all 0.2s;
             font-family: 'Noto Sans SC', sans-serif;
@@ -5432,20 +5437,12 @@
 
             <div class="focus-review-day" id="focusReviewTodayBlock">
                 <div class="focus-review-day-title" id="focusReviewTodayTitle">今天 · 未评</div>
-                <div class="focus-review-levels">
-                    <button class="focus-review-level" data-level="low">低</button>
-                    <button class="focus-review-level" data-level="medium">中</button>
-                    <button class="focus-review-level" data-level="high">高</button>
-                </div>
+                <div class="focus-review-levels"></div>
             </div>
 
             <div class="focus-review-day" id="focusReviewYesterdayBlock">
                 <div class="focus-review-day-title" id="focusReviewYesterdayTitle">昨天 · 未评</div>
-                <div class="focus-review-levels">
-                    <button class="focus-review-level" data-level="low">低</button>
-                    <button class="focus-review-level" data-level="medium">中</button>
-                    <button class="focus-review-level" data-level="high">高</button>
-                </div>
+                <div class="focus-review-levels"></div>
             </div>
 
             <div class="focus-review-note" id="focusReviewNote"></div>
@@ -8530,6 +8527,19 @@
             _reviewState: null,
             _reviewEventsBound: false,
 
+            // ---- 每日完成度六档（由低到高），弹窗按钮/柱顶标注/映射统一走这里 ----
+            _reviewLevels: [
+                { code: 'low', cn: '低' },
+                { code: 'medium_low', cn: '中低' },
+                { code: 'medium', cn: '中' },
+                { code: 'medium_high', cn: '中高' },
+                { code: 'high', cn: '高' },
+                { code: 'very_high', cn: '非常高' }
+            ],
+            _levelCN: { low: '低', medium_low: '中低', medium: '中', medium_high: '中高', high: '高', very_high: '非常高' },
+            // 档位色阶：红→橙→琥珀→浅绿→绿→青绿（"未"沿用 textColor 灰）
+            _levelColors: { low: '#e74c3c', medium_low: '#e67e22', medium: '#f0a500', medium_high: '#8bc34a', high: '#43a047', very_high: '#00b894' },
+
             // 当前条形图数据（用于计算平均值）
             _barChartData: [],
 
@@ -8985,8 +8995,7 @@
 
                         // 统一紫色（不再使用热力阶梯色）
                         var barColor = '#6c5ce7';
-                        // 完成度等级 → 中文显示（柱顶标注 / tooltip 用）
-                        var levelCN = { low: '低', medium: '中', high: '高' };
+                        // 完成度中文显示与颜色统一取共享映射（self._levelCN / self._levelColors，六档）
                         
                         var ctx = document.getElementById('focusBarChart').getContext('2d');
                         
@@ -9016,10 +9025,8 @@
                                             var lv = (self._currentDayLevels && index < self._currentDayLevels.length)
                                                 ? self._currentDayLevels[index] : null;
                                             if (lv !== null && lv !== undefined) {
-                                                var lvText = lv === '' ? '未' : (levelCN[lv] || lv);
-                                                var lvColor = lv === 'high' ? '#00b894'
-                                                    : (lv === 'medium' ? '#e67e22'
-                                                    : (lv === 'low' ? '#e17055' : textColor));
+                                                var lvText = lv === '' ? '未' : (self._levelCN[lv] || lv);
+                                                var lvColor = self._levelColors[lv] || textColor;
                                                 ctx2.save();
                                                 ctx2.fillStyle = lvColor;
                                                 ctx2.font = '9px "Noto Sans SC", sans-serif';
@@ -9094,7 +9101,7 @@
                                                     ? self._currentDayLevels[ctx.dataIndex] : null;
                                                 var extra = '';
                                                 if (lv === '') extra = ' · 完成度：未评';
-                                                else if (lv && levelCN[lv]) extra = ' · 完成度：' + levelCN[lv];
+                                                else if (lv && self._levelCN[lv]) extra = ' · 完成度：' + self._levelCN[lv];
                                                 return mins + '分钟' + extra;
                                             }
                                         }
@@ -9331,7 +9338,7 @@
                     overlay.addEventListener('click', function(e) {
                         if (e.target === overlay) self.closeReview();
                     });
-                    // 事件委托：点击"低/中/高"任一按钮即保存对应日期
+                    // 事件委托：点击六档评级按钮中任一即保存对应日期
                     overlay.addEventListener('click', function(e) {
                         var btn = e.target.closest ? e.target.closest('.focus-review-level') : null;
                         if (!btn || btn.disabled) return;
@@ -9340,6 +9347,16 @@
                         var date = block.getAttribute('data-date');
                         if (!date) return;
                         self._saveReview(date, btn.getAttribute('data-level'));
+                    });
+                    // 生成"今天/昨天"两行的六档按钮（按钮由 JS 生成，HTML 只留空容器）
+                    overlay.querySelectorAll('.focus-review-levels').forEach(function(c) {
+                        self._reviewLevels.forEach(function(lv) {
+                            var b = document.createElement('button');
+                            b.className = 'focus-review-level';
+                            b.setAttribute('data-level', lv.code);
+                            b.textContent = lv.cn;
+                            c.appendChild(b);
+                        });
                     });
                     this._reviewEventsBound = true;
                 }
@@ -9366,7 +9383,7 @@
             _renderReviewState: function() {
                 var st = this._reviewState;
                 if (!st) return;
-                var levelCN = { low: '低', medium: '中', high: '高' };
+                var levelCN = this._levelCN; // 六档共享映射
                 var dateLabel = function(d) { return d && d.date ? d.date.substring(5) : ''; };
 
                 var todayBlock = document.getElementById('focusReviewTodayBlock');
@@ -9417,9 +9434,8 @@
                             self.showToast('❌ ' + (res.message || '保存失败'));
                             return;
                         }
-                        var levelCN = { low: '低', medium: '中', high: '高' };
                         var which = (self._reviewState && date === self._reviewState.today.date) ? '今天' : '昨天';
-                        self.showToast('✅ 已记录' + which + '完成度：' + (levelCN[level] || level));
+                        self.showToast('✅ 已记录' + which + '完成度：' + (self._levelCN[level] || level));
                         // 更新本地状态并刷新按钮高亮
                         if (self._reviewState) {
                             if (date === self._reviewState.today.date) self._reviewState.today.level = level;
