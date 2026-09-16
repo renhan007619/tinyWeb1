@@ -377,7 +377,7 @@ type PageResponse struct {
 //	| started_at | datetime(3)   | 开始专注的时间               |
 //	| tag        | varchar(50)   | 标签名（如"Go语言开发"）      |
 //	| tag_color  | varchar(7)    | 标签颜色（如"#FF6B6B"）      |
-//	| completion_level | varchar(10)| 当天完成度 low/medium/high（按天同步，NULL=未评）|
+//	| completion_level | varchar(20)| 当天完成度 六档：low/medium_low/medium/medium_high/high/very_high（按天同步，NULL=未评）|
 type StudySession struct {
 	gorm.Model
 	UserID           uint      `gorm:"index;not null" json:"user_id"`                      // 关联用户ID
@@ -386,7 +386,7 @@ type StudySession struct {
 	StartedAt        time.Time `gorm:"not null" json:"started_at"`                         // 开始时间
 	Tag              string    `gorm:"type:varchar(50);index;not null" json:"tag"`         // 标签名
 	TagColor         string    `gorm:"type:varchar(7);default:'#6C5CE7'" json:"tag_color"` // 标签颜色
-	CompletionLevel  string    `gorm:"type:varchar(10);index;default:NULL" json:"completion_level,omitempty"` // 当日完成度（任务完成度评价功能新增；NULL=未评，default:NULL 保证新记录写入 NULL 而非空串）
+	CompletionLevel  string    `gorm:"type:varchar(20);index;default:NULL" json:"completion_level,omitempty"` // 当日完成度（任务完成度评价功能新增；NULL=未评，default:NULL 保证新记录写入 NULL 而非空串；varchar(20)：六档最长值 medium_high 为 11 字符，varchar(10) 会写入失败）
 }
 
 // TableName 指定 StudySession 对应的数据库表名
